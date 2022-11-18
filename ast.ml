@@ -55,7 +55,6 @@ let string_of_binop = function
 let string_of_unop = function
   Not -> "!"
 
-
 let string_of_typ = function
     Int -> "int"
   | Bool -> "bool"
@@ -63,7 +62,7 @@ let string_of_typ = function
   | String -> "string"
   | Void -> "void"
 
-  let rec string_of_expr = function
+let rec string_of_expr = function
     Literal(l) -> string_of_int l
   | BoolLit(true) -> "true"
   | BoolLit(false) -> "false"

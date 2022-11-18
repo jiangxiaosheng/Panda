@@ -1,11 +1,27 @@
-{ open Panda_parser }
+{
+	open Parser
+	open Buffer
+
+	let string_buff = Buffer.create 32
+
+	let escape_to_char = function
+	 | 'n' -> '\010'
+	 | 'r' -> '\013'
+	 | 'b' -> '\008'
+	 | 't' -> '\009'
+	 | c   -> c
+}
 
 let digit = ['0'-'9']
 let letter = ['a'-'z' 'A'-'Z']
+(* reference: https://stackoverflow.com/questions/66307896/lexing-strings-in-ocamllex *)
+let backslash_escapes = ['\\' '\'' '"' 'n' 't' 'b' 'r']
+
 
 rule token = parse
   [' ' '\t' '\r' '\n'] { token lexbuf } (* Whitespace *)
-| "/*"     { comment lexbuf }           (* Comments *)
+| "/*"     { multi_comment lexbuf }           (* Comments *)
+| "//"		{ single_comment lexbuf }
 | "var"		{ VAR }
 | "for"		{ FOR }
 | '('      { LPAREN }
@@ -20,7 +36,11 @@ rule token = parse
 | ":"		{ COLON }
 | "=="     { EQ }
 | "!="     { NEQ }
-| "!"		{ NOT }
+| '!'		{ NOT }
+| "+="		{ PLUSEQ }
+| "-="		{ MINUSEQ }
+| "*="		{ STAREQ }
+| "/="		{ SLASHEQ }
 | '<'      { LT }
 | "&&"     { AND }
 | "||"     { OR }
@@ -40,11 +60,23 @@ rule token = parse
 | "break"	{ BREAK }
 | "true"   { BLIT(true)  }
 | "false"  { BLIT(false) }
+| '"'		{ Buffer.clear string_buff;
+			  string lexbuf;
+			  SLIT(Buffer.contents string_buff) }
 | digit+ as lem  { LITERAL(int_of_string lem) }
 | letter (digit | letter | '_')* as lem { ID(lem) }
 | eof { EOF }
 | _ as char { raise (Failure("illegal character " ^ Char.escaped char)) }
 
-and comment = parse
+and multi_comment = parse
   "*/" { token lexbuf }
-| _    { comment lexbuf }
+| _    { multi_comment lexbuf }
+
+and single_comment = parse
+  '\n'	{ token lexbuf }
+| _		{ single_comment lexbuf }
+
+and string = parse
+| '"'	{ () }
+| '\\' (backslash_escapes as e)	{ Buffer.add_char string_buff (escape_to_char e); string lexbuf }
+| _ as c	{ Buffer.add_char string_buff c; string lexbuf }

@@ -1,6 +1,21 @@
 var a: int;
 var b: int;
 
-a = 1;
-b = 2;
-a + b;
+// one-line comment
+
+/* 
+  multi-line comment
+*/
+
+// TODO: fix formal decl
+int foo(var a: int) {
+	a = 1;
+	b = 2;
+	a + b;
+}
+
+int main() {
+	var x: string;
+	x = "hello world";
+	print(x);
+}

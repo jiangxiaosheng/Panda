@@ -2,7 +2,7 @@
 	open Ast
 %}
 
-%token SEMI LPAREN RPAREN LBRACE RBRACE PLUS MINUS ASSIGN
+%token SEMI LPAREN RPAREN LBRACE RBRACE PLUS MINUS ASSIGN PLUSEQ MINUSEQ STAREQ SLASHEQ
 %token EQ NEQ LT AND OR NOT
 %token IF ELSE WHILE INT BOOL
 /* return, COMMA token */
@@ -53,14 +53,14 @@ typ:
 
 /* fdecl */
 fdecl:
-  vdecl LPAREN formals_opt RPAREN LBRACE vdecl_list stmt_list RBRACE
+  typ ID LPAREN formals_opt RPAREN LBRACE vdecl_list stmt_list RBRACE
   {
     {
-      rtyp=fst $1;
-      fname=snd $1;
-      formals=$3;
-      locals=$6;
-      body=$7
+      rtyp=$1;
+      fname=$2;
+      formals=$4;
+      locals=$7;
+      body=$8
     }
   }
 
@@ -71,8 +71,8 @@ formals_opt:
 
 
 formals_list:
-  formal_vdecl { [$1] }
-  | formal_vdecl COMMA formals_list { $1::$3 }
+  vdecl { [$1] }
+  | vdecl COMMA formals_list { $1::$3 }
 
 formal_vdecl:
   ID COLON typ	{ ($3, $1) }
@@ -82,7 +82,7 @@ stmt_list:
   | stmt stmt_list  { $1::$2 }
 
 stmt:
-    expr SEMI                               { Expr $1      }
+    expr SEMI                               { Expr $1  }
   | LBRACE stmt_list RBRACE                 { Block $2 }
   /* if (condition) { block1} else {block2} */
   /* if (condition) stmt else stmt */
