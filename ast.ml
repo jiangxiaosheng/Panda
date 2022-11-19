@@ -1,4 +1,4 @@
-type binop = Add | Sub | Equal | Neq | Less | And | Or 
+type binop = Add | Sub | Equal | Neq | Less | Greater | And | Or 
 
 type unop = Not
 
@@ -15,7 +15,7 @@ type expr =
   (* var x = 3 *)
   | Assign of string * expr
   (* var x: int = 3 *)
-  | TypedAssign of typ * string * expr
+  (* | TypedAssign of typ * string * expr *)
   (* function call *)
   | Call of string * expr list
 
@@ -48,6 +48,7 @@ let string_of_binop = function
   | Equal -> "=="
   | Neq -> "!="
   | Less -> "<"
+  | Greater -> "<"
   | And -> "&&"
   | Or -> "||"
 
@@ -73,7 +74,7 @@ let rec string_of_expr = function
   | Binop(e1, o, e2) ->
     string_of_expr e1 ^ " " ^ string_of_binop o ^ " " ^ string_of_expr e2
   | Assign(v, e) -> v ^ " = " ^ string_of_expr e
-  | TypedAssign(t, v, e) -> v ^ ":" ^ string_of_typ t ^ " = " ^ string_of_expr e
+  (* | TypedAssign(t, v, e) -> v ^ ":" ^ string_of_typ t ^ " = " ^ string_of_expr e *)
   | Call(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
 

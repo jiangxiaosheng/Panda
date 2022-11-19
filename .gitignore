@@ -5,3 +5,4 @@ parser.mli
 scanner.ml
 test.native
 _build/
+*.output

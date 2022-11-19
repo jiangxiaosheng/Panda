@@ -42,6 +42,7 @@ rule token = parse
 | "*="		{ STAREQ }
 | "/="		{ SLASHEQ }
 | '<'      { LT }
+| '>'	   { GT }
 | "&&"     { AND }
 | "||"     { OR }
 | "if"     { IF }

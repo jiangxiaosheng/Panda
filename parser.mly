@@ -3,7 +3,7 @@
 %}
 
 %token SEMI LPAREN RPAREN LBRACE RBRACE PLUS MINUS ASSIGN PLUSEQ MINUSEQ STAREQ SLASHEQ
-%token EQ NEQ LT AND OR NOT
+%token EQ NEQ LT GT AND OR NOT
 %token IF ELSE WHILE INT BOOL
 /* return, COMMA token */
 %token RETURN COMMA
@@ -19,11 +19,13 @@
 %type <Ast.program> program
 
 %right ASSIGN
+%nonassoc NOT
 %left OR
 %left AND
 %left EQ NEQ
-%left LT
+%left LT GT
 %left PLUS MINUS
+
 
 %%
 
@@ -74,8 +76,8 @@ formals_list:
   vdecl { [$1] }
   | vdecl COMMA formals_list { $1::$3 }
 
-formal_vdecl:
-  ID COLON typ	{ ($3, $1) }
+// formal_vdecl:
+//   ID COLON typ	{ ($3, $1) }
 
 stmt_list:
   /* nothing */ { [] }
@@ -87,10 +89,11 @@ stmt:
   /* if (condition) { block1} else {block2} */
   /* if (condition) stmt else stmt */
   | IF LPAREN expr RPAREN stmt ELSE stmt    { If($3, $5, $7) }
+  /* while (condition) stmt */
   | WHILE LPAREN expr RPAREN stmt           { While ($3, $5)  }
   /* return */
   | RETURN expr SEMI                        { Return $2      }
-
+  
 expr:
     LITERAL          { Literal($1)            }
   | BLIT             { BoolLit($1)            }
@@ -102,14 +105,16 @@ expr:
   | expr EQ     expr { Binop($1, Equal, $3)   }
   | expr NEQ    expr { Binop($1, Neq, $3)     }
   | expr LT     expr { Binop($1, Less,  $3)   }
+  | expr GT     expr { Binop($1, Greater,  $3)   }
   | expr AND    expr { Binop($1, And,   $3)   }
   | expr OR     expr { Binop($1, Or,    $3)   }
+  | ID LPAREN args_opt RPAREN { Call ($1, $3)  }
   | NOT expr		{ Unop(Not, $2) }
   | ID ASSIGN expr   { Assign($1, $3)    	}
 //   | ID COLON typ ASSIGN expr	{ TypedAssign($4, $2, $6) }
   | LPAREN expr RPAREN { $2                   }
   /* call */
-  | ID LPAREN args_opt RPAREN { Call ($1, $3)  }
+
 
 /* args_opt*/
 args_opt:
