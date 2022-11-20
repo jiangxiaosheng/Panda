@@ -13,9 +13,13 @@
 }
 
 let digit = ['0'-'9']
+let sign = ['-''+']
+let integer = sign?digit+
+let decimal = sign?(digit+'.'digit*)|('.'digit+)
 let letter = ['a'-'z' 'A'-'Z']
 (* reference: https://stackoverflow.com/questions/66307896/lexing-strings-in-ocamllex *)
 let backslash_escapes = ['\\' '\'' '"' 'n' 't' 'b' 'r']
+
 
 
 rule token = parse
@@ -64,7 +68,8 @@ rule token = parse
 | '"'		{ Buffer.clear string_buff;
 			  string lexbuf;
 			  SLIT(Buffer.contents string_buff) }
-| digit+ as lem  { LITERAL(int_of_string lem) }
+| integer as i { LITERAL(int_of_string i) }
+| decimal as f		{ FLIT(float_of_string f) }
 | letter (digit | letter | '_')* as lem { ID(lem) }
 | eof { EOF }
 | _ as char { raise (Failure("illegal character " ^ Char.escaped char)) }

@@ -5,7 +5,7 @@ module StringMap = Map.Make(String)
 
 let check(globals, functions) = 
 
-  let check_binds (kind : string) (binds : (typ * string) list) =
+  let check_dup_binds (kind : string) (binds : (typ * string) list) =
     let rec dups = function
         [] -> ()
       |	((_,n1) :: (_,n2) :: _) when n1 = n2 ->
@@ -14,8 +14,6 @@ let check(globals, functions) =
     in dups (List.sort (fun (_,a) (_,b) -> compare a b) binds)
   in
 
-  (* Make sure no globals duplicate *)
-  check_binds "global" globals;
 
   (* Collect function declarations for built-in functions: no bodies *)
   let built_in_decls =
@@ -23,7 +21,7 @@ let check(globals, functions) =
       rtyp = Int;
       fname = "print";
       formals = [(String, "x")];
-      locals = []; body = [] } StringMap.empty
+      body = [] } StringMap.empty
   in
 
   (* Add function name to symbol table *)
@@ -50,50 +48,135 @@ let check(globals, functions) =
 
   let _ = find_func "main" in (* Ensure "main" is defined *)
 
+  (* Return a variable type from our local symbol table *)
+  let type_of_identifier s symbols =
+    try StringMap.find s symbols
+    with Not_found -> raise (Failure ("undeclared identifier " ^ s))
+  in
+
+  (* Raise an exception if the given rvalue type cannot be assigned to
+      the given lvalue type *)
+  let check_assign lvaluet rvaluet err =
+    match lvaluet, rvaluet with
+    | Float, Int -> Float
+    | _, _ when lvaluet = rvaluet -> lvaluet
+    | _, _ -> raise (Failure err)
+  in
+
+  let sglobals = 
+  (* check global variables declaration *)
+  let check_globals globals = 
+    (* Make sure no globals duplicate *)
+    let global_t = List.map (fun (t, id, e) -> t, id) globals in check_dup_binds "global" global_t;
+
+    let globals' = List.map (fun (t, id, e) -> t, id) globals in
+    let global_symbols = List.fold_left (fun m (t, id) -> StringMap.add id t m) StringMap.empty globals' in
+
+    (* disallow function calls in the global scope *)
+    let rec check_global_expr = function
+    | DefaultValue -> (Void, SDefaultValue)
+    | Literal l -> (Int, SLiteral l)
+    | BoolLit l -> (Bool, SBoolLit l)
+    | FloatLit l -> (Float, SFloatLit l)
+    | StringLit l -> (String, SStringLit l)
+    | Id var -> let t' = type_of_identifier var global_symbols in (t', SId var)
+    | Assign(var, e) as ex ->
+      let lt = type_of_identifier var global_symbols
+      and (rt, e') = check_global_expr e in
+      let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^
+                string_of_typ rt ^ " in " ^ string_of_expr ex
+      in
+      (check_assign lt rt err, SAssign(var, (rt, e')))
+
+    | Binop(e1, op, e2) as e ->
+      let (t1, e1') = check_global_expr e1
+      and (t2, e2') = check_global_expr e2 in
+      let err = "illegal binary operator " ^
+                string_of_typ t1 ^ " " ^ string_of_binop op ^ " " ^
+                string_of_typ t2 ^ " in " ^ string_of_expr e
+      in
+      (* All binary operators require operands of the same type*)
+      if t1 = t2 then
+        (* Determine expression type based on operator and operand types *)
+        let t = match op with
+            Add | Sub when t1 = Int -> Int
+          | Equal | Neq -> Bool
+          | Less when t1 = Int -> Bool
+          | And | Or when t1 = Bool -> Bool
+          | _ -> raise (Failure err)
+        in
+        (t, SBinop((t1, e1'), op, (t2, e2')))
+      (* Allows for implicit string casting, e.g. 3+"1"="31" *)
+      else if op = Add && (t1 = String || t2 = String) then begin
+        match t1, t2 with
+          | String, t -> begin
+            match t with
+            | Int | Float -> (String, SBinop((String, e1'), Add, (String, e2')))
+            | _ -> raise (Failure err)
+          end
+          | t, String -> begin
+            match t with
+            | Int | Float -> (String, SBinop((String, e1'), Add, (String, e2')))
+            | _ -> raise (Failure err)
+          end
+          | _ -> raise (Failure err)
+        end
+      else raise (Failure err)
+    | Unop(op, e) -> begin
+      match op with 
+      | Not ->
+        let (t, e') = check_global_expr e in
+        let err = "illegal expression of type " ^ string_of_typ t ^ ", exepected boolean" in
+        if t = Bool then (Bool, SUnop(Not, (Bool, e')))
+        else raise (Failure err)
+      end
+    | Call(fname, args) as call -> raise (Failure "illegal call in the global scope")
+    in
+
+    let check_global_bind b = let (t, v, e) = b in
+      let (t', e') = check_global_expr e in
+      if e = DefaultValue then begin
+      match t with
+      | Int -> t, v, (Int, SLiteral 0)
+      | Bool -> t, v, (Bool, SBoolLit(false))
+      | Float -> t, v, (Float, SFloatLit(0.0))
+      | String -> t, v, (String, SStringLit(""))
+      | _ -> raise (Failure "unrecognized type: ")
+      end
+      else if t = Void then t', v, (t', e')
+      else let err = "type mismatch. " ^ v ^ ": " ^ string_of_typ t ^ ", received " ^ string_of_typ t' in
+        check_assign t t' err, v, (t', e')
+    in
+  List.map check_global_bind globals in
+  check_globals globals in 
+
+
   let check_func func =
     (* Make sure no formals or locals are void or duplicates *)
-    check_binds "formal" func.formals;
-    check_binds "local" func.locals;
-
-    (* Raise an exception if the given rvalue type cannot be assigned to
-      the given lvalue type *)
-    let check_assign lvaluet rvaluet err =
-        match lvaluet, rvaluet with
-        | Float, Int -> Float
-        | _, _ when lvaluet = rvaluet -> lvaluet
-        | _, _ -> raise (Failure err)
-    in
+    check_dup_binds "formal" func.formals;
 
     (* Build local symbol table of variables for this function *)
-    let symbols = List.fold_left (fun m (ty, name) -> StringMap.add name ty m)
-        StringMap.empty (globals @ func.formals @ func.locals )
+    let globals' = List.map (fun (t, id, e) -> t, id) globals in
+    let symbols = List.fold_left (fun m (t, id) -> StringMap.add id t m) StringMap.empty (globals' @ func.formals)
     in
 
-    (* Return a variable from our local symbol table *)
-    let type_of_identifier s =
-      try StringMap.find s symbols
-      with Not_found -> raise (Failure ("undeclared identifier " ^ s))
-    in
+    (* let to_string  *)
 
     (* Return a semantically-checked expression, i.e., with a type *)
     let rec check_expr = function
-        Literal l -> (Int, SLiteral l)
+      | DefaultValue -> (Void, SDefaultValue)
+      | Literal l -> (Int, SLiteral l)
       | BoolLit l -> (Bool, SBoolLit l)
       | FloatLit l -> (Float, SFloatLit l)
       | StringLit l -> (String, SStringLit l)
-      | Id var -> (type_of_identifier var, SId var)
+      | Id var -> let t' = type_of_identifier var symbols in (t', SId var)
       | Assign(var, e) as ex ->
-        let lt = type_of_identifier var
+        let lt = type_of_identifier var symbols
         and (rt, e') = check_expr e in
         let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^
                   string_of_typ rt ^ " in " ^ string_of_expr ex
         in
         (check_assign lt rt err, SAssign(var, (rt, e')))
-
-      (* | TypedAssign(typ, var, e) ->
-        let lt = type_of_identifier var and (rt, e') = check_expr e in
-        let t' = check_binds lt, rt in
-        if lt = typ *)
 
       | Binop(e1, op, e2) as e ->
         let (t1, e1') = check_expr e1
@@ -113,6 +196,21 @@ let check(globals, functions) =
             | _ -> raise (Failure err)
           in
           (t, SBinop((t1, e1'), op, (t2, e2')))
+        (* Allows for implicit string casting, e.g. 3+"1"="31" *)
+        else if op = Add && (t1 = String || t2 = String) then begin
+          match t1, t2 with
+            | String, t -> begin
+              match t with
+              | Int | Float -> (String, SBinop((String, e1'), Add, (String, e2')))
+              | _ -> raise (Failure err)
+            end
+            | t, String -> begin
+              match t with
+              | Int | Float -> (String, SBinop((String, e1'), Add, (String, e2')))
+              | _ -> raise (Failure err)
+            end
+            | _ -> raise (Failure err)
+          end
         else raise (Failure err)
       | Unop(op, e) -> begin
         match op with 
@@ -145,12 +243,28 @@ let check(globals, functions) =
       |  _ -> raise (Failure ("expected Boolean expression in " ^ string_of_expr e))
     in
 
-    let rec check_stmt_list =function
+    let check_bind b = let (t, v, e) = b in
+      let (t', e') = check_expr e in
+      if e = DefaultValue then begin
+      match t with
+      | Int -> t, v, (Int, SLiteral 0)
+      | Bool -> t, v, (Bool, SBoolLit(false))
+      | Float -> t, v, (Float, SFloatLit(0.0))
+      | String -> t, v, (String, SStringLit(""))
+      | _ -> raise (Failure "unrecognized type: ")
+      end
+      else if t = Void then t', v, (t', e')
+      else let err = "type mismatch. " ^ v ^ ": " ^ string_of_typ t ^ ", received " ^ string_of_typ t' in
+        check_assign t t' err, v, (t', e')
+      in
+
+
+    let rec check_stmt_list = function
         [] -> []
       | Block sl :: sl'  -> check_stmt_list (sl @ sl') (* Flatten blocks *)
       | s :: sl -> check_stmt s :: check_stmt_list sl
     (* Return a semantically-checked statement i.e. containing sexprs *)
-    and check_stmt =function
+    and check_stmt = function
       (* A block is correct if each statement is correct and nothing
         follows any Return statement.  Nested blocks are flattened. *)
         Block sl -> SBlock (check_stmt_list sl)
@@ -165,14 +279,18 @@ let check(globals, functions) =
         else raise (
             Failure ("return gives " ^ string_of_typ t ^ " expected " ^
                     string_of_typ func.rtyp ^ " in " ^ string_of_expr e))
+      (* var x: int *)
+      (* var x: int = 2 *)
+      (* var x = 2 *)
+      | Bind(b) -> let sb = check_bind b in SBind(sb)
+      (* | For(e1, e2, e3, st) -> SFor(e1, e2, e3, ) *)
+    
     in (* body of check_func *)
     { srtyp = func.rtyp;
       sfname = func.fname;
       sformals = func.formals;
-      slocals  = func.locals;
       sbody = check_stmt_list func.body
     }
   in
-  (globals, List.map check_func functions)
 
-
+  (sglobals, List.map check_func functions)

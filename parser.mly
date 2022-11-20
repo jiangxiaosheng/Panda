@@ -25,6 +25,7 @@
 %left EQ NEQ
 %left LT GT
 %left PLUS MINUS
+%nonassoc ID LITERAL BLIT FLIT SLIT
 
 
 %%
@@ -38,13 +39,12 @@ decls:
  | vdecl SEMI decls { (($1 :: fst $3), snd $3) }
  | fdecl decls { (fst $2, ($1 :: snd $2)) }
 
-vdecl_list:
-  /*nothing*/ { [] }
-  | vdecl SEMI vdecl_list  {  $1 :: $3 }
-
 // var x: string;
+// var x = 1
 vdecl:
-  VAR ID COLON typ { ($4, $2) }
+ | VAR ID COLON typ { ($4, $2, DefaultValue) }
+ | VAR ID COLON typ ASSIGN expr { ($4, $2, $6) }
+ | VAR ID ASSIGN expr { (Void, $2, $4) }
 
 typ:
     INT   { Int   }
@@ -55,14 +55,13 @@ typ:
 
 /* fdecl */
 fdecl:
-  typ ID LPAREN formals_opt RPAREN LBRACE vdecl_list stmt_list RBRACE
+  typ ID LPAREN formals_opt RPAREN LBRACE stmt_list RBRACE
   {
     {
       rtyp=$1;
       fname=$2;
       formals=$4;
-      locals=$7;
-      body=$8
+      body=$7;
     }
   }
 
@@ -73,11 +72,11 @@ formals_opt:
 
 
 formals_list:
-  vdecl { [$1] }
-  | vdecl COMMA formals_list { $1::$3 }
+  formal_vdecl { [$1] }
+  | formal_vdecl COMMA formals_list { $1::$3 }
 
-// formal_vdecl:
-//   ID COLON typ	{ ($3, $1) }
+formal_vdecl:
+  ID COLON typ	{ ($3, $1) }
 
 stmt_list:
   /* nothing */ { [] }
@@ -90,9 +89,10 @@ stmt:
   /* if (condition) stmt else stmt */
   | IF LPAREN expr RPAREN stmt ELSE stmt    { If($3, $5, $7) }
   /* while (condition) stmt */
-  | WHILE LPAREN expr RPAREN stmt           { While ($3, $5)  }
+  | WHILE LPAREN expr RPAREN stmt           { While($3, $5)  }
   /* return */
   | RETURN expr SEMI                        { Return $2      }
+  | FOR LPAREN expr expr expr RPAREN stmt	{ For($3, $4, $5, $7) }
   
 expr:
     LITERAL          { Literal($1)            }
@@ -108,11 +108,11 @@ expr:
   | expr GT     expr { Binop($1, Greater,  $3)   }
   | expr AND    expr { Binop($1, And,   $3)   }
   | expr OR     expr { Binop($1, Or,    $3)   }
-  | ID LPAREN args_opt RPAREN { Call ($1, $3)  }
   | NOT expr		{ Unop(Not, $2) }
   | ID ASSIGN expr   { Assign($1, $3)    	}
-//   | ID COLON typ ASSIGN expr	{ TypedAssign($4, $2, $6) }
   | LPAREN expr RPAREN { $2                   }
+  | ID LPAREN args_opt RPAREN { Call ($1, $3)  }
+//   foo(a, b)
   /* call */
 
 

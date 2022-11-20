@@ -2,7 +2,8 @@ open Ast
 
 type sexpr = typ * sx
 and sx =
-    SLiteral of int
+  | SDefaultValue
+  | SLiteral of int
   | SBoolLit of bool
   | SFloatLit of float
   | SStringLit of string
@@ -13,6 +14,9 @@ and sx =
   (* call *)
   | SCall of string * sexpr list
 
+
+type sbind = typ * string * sexpr
+
 type sstmt =
     SBlock of sstmt list
   | SExpr of sexpr
@@ -20,22 +24,24 @@ type sstmt =
   | SWhile of sexpr * sstmt
   (* return *)
   | SReturn of sexpr
+  | SBind of sbind
+  | SFor of sexpr * sexpr * sexpr * sstmt
 
 
 type sfunc_def = {
   srtyp: typ;
   sfname: string;
-  sformals: bind list;
-  slocals: bind list;
+  sformals: formal list;
   sbody: sstmt list;
 }
 
-type sprogram = bind list * sfunc_def list
+type sprogram = sbind list * sfunc_def list
 
 
 let rec string_of_sexpr (t, e) =
   "(" ^ string_of_typ t ^ " : " ^ (match e with
-        SLiteral(l) -> string_of_int l
+      | SDefaultValue -> "default"
+      | SLiteral(l) -> string_of_int l
       | SBoolLit(true) -> "true"
       | SBoolLit(false) -> "false"
       | SFloatLit(f) -> string_of_float f
@@ -49,6 +55,9 @@ let rec string_of_sexpr (t, e) =
           f ^ "(" ^ String.concat ", " (List.map string_of_sexpr el) ^ ")"
   ) ^ ")"
 
+
+let string_of_sbind(b) = let (t, id, e) = b in "var " ^ id ^ ": " ^ string_of_typ t ^ string_of_sexpr e ^ ";\n"
+
 let rec string_of_sstmt = function
     SBlock(stmts) ->
     "{\n" ^ String.concat "" (List.map string_of_sstmt stmts) ^ "}\n"
@@ -57,16 +66,17 @@ let rec string_of_sstmt = function
   | SIf(e, s1, s2) ->  "if (" ^ string_of_sexpr e ^ ")\n" ^
                        string_of_sstmt s1 ^ "else\n" ^ string_of_sstmt s2
   | SWhile(e, s) -> "while (" ^ string_of_sexpr e ^ ") " ^ string_of_sstmt s
+  | SBind(b) -> string_of_sbind b
+  | SFor(e1, e2, e3, st) -> "not implemented"
 
 let string_of_sfdecl fdecl =
   string_of_typ fdecl.srtyp ^ " " ^
   fdecl.sfname ^ "(" ^ String.concat ", " (List.map snd fdecl.sformals) ^
   ")\n{\n" ^
-  String.concat "" (List.map string_of_vdecl fdecl.slocals) ^
   String.concat "" (List.map string_of_sstmt fdecl.sbody) ^
   "}\n"
 
 let string_of_sprogram (vars, funcs) =
   "\n\nSementically checked program: \n\n" ^
-  String.concat "" (List.map string_of_vdecl vars) ^ "\n" ^
+  String.concat "" (List.map string_of_sbind vars) ^ "\n" ^
   String.concat "\n" (List.map string_of_sfdecl funcs)

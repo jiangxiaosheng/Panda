@@ -22,12 +22,18 @@ int foo(var a: int) {
 }
 
 int main() {
+	var v: boolean;
 	var x: string;
+	var f: float;
 	x = "hello world";
-
-
+	v = true;
+	v = !v;
+	f = 1.23;
 	print(x);
+	n += 1;
 
 	//pred = false;
 
 }
+
+var n: int;

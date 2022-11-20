@@ -4,8 +4,11 @@ type unop = Not
 
 type typ = Int | Bool | Float | String | Void
 
+type default_value = IntDefault | BoolDefault | FloatDefalt
+
 type expr =
-    Literal of int
+  | DefaultValue
+  | Literal of int
   | BoolLit of bool
   | FloatLit of float
   | StringLit of string
@@ -19,6 +22,12 @@ type expr =
   (* function call *)
   | Call of string * expr list
 
+
+(* int x: name binding *)
+type bind = typ * string * expr
+type formal = typ * string
+
+
 type stmt =
     Block of stmt list
   | Expr of expr
@@ -26,16 +35,15 @@ type stmt =
   | While of expr * stmt
   (* return *)
   | Return of expr
+  | Bind of bind
+  | For of expr * expr * expr * stmt
 
-(* int x: name binding *)
-type bind = typ * string
 
 (* func_def: ret_typ fname formals locals body *)
 type func_def = {
   rtyp: typ;
   fname: string;
-  formals: bind list;
-  locals: bind list;
+  formals: formal list;
   body: stmt list;
 }
 
@@ -48,7 +56,7 @@ let string_of_binop = function
   | Equal -> "=="
   | Neq -> "!="
   | Less -> "<"
-  | Greater -> "<"
+  | Greater -> ">"
   | And -> "&&"
   | Or -> "||"
 
@@ -64,7 +72,8 @@ let string_of_typ = function
   | Void -> "void"
 
 let rec string_of_expr = function
-    Literal(l) -> string_of_int l
+  | DefaultValue -> "default"
+  | Literal(l) -> string_of_int l
   | BoolLit(true) -> "true"
   | BoolLit(false) -> "false"
   | FloatLit(f) -> string_of_float f
@@ -78,6 +87,9 @@ let rec string_of_expr = function
   | Call(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
 
+
+let string_of_bind(b) = let (t, id, e) = b in "var " ^ id ^ ": " ^ string_of_typ t ^ string_of_expr e ^ ";\n"
+
 let rec string_of_stmt = function
     Block(stmts) ->
     "{\n" ^ String.concat "" (List.map string_of_stmt stmts) ^ "}\n"
@@ -86,19 +98,18 @@ let rec string_of_stmt = function
   | If(e, s1, s2) ->  "if (" ^ string_of_expr e ^ ")\n" ^
                       string_of_stmt s1 ^ "else\n" ^ string_of_stmt s2
   | While(e, s) -> "while (" ^ string_of_expr e ^ ") " ^ string_of_stmt s
+  | Bind(b) -> string_of_bind b
+  | For(e1, e2, e3, st) -> "not implemented"
 
-
-let string_of_vdecl (t, id) = id ^ ":" ^ string_of_typ t ^ ";\n"
 
 let string_of_fdecl fdecl =
   string_of_typ fdecl.rtyp ^ " " ^
   fdecl.fname ^ "(" ^ String.concat ", " (List.map snd fdecl.formals) ^
   ")\n{\n" ^
-  String.concat "" (List.map string_of_vdecl fdecl.locals) ^
   String.concat "" (List.map string_of_stmt fdecl.body) ^
   "}\n"
 
 let string_of_program (vars, funcs) =
   "\n\nParsed program: \n\n" ^
-  String.concat "" (List.map string_of_vdecl vars) ^ "\n" ^
+  String.concat "" (List.map string_of_bind vars) ^ "\n" ^
   String.concat "\n" (List.map string_of_fdecl funcs)
