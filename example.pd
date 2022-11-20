@@ -1,7 +1,7 @@
 var a: int;
 var b: int;
 var p: boolean;
-
+//p = 2;
 
 // one-line comment
 
@@ -9,8 +9,7 @@ var p: boolean;
   multi-line comment
 */
 
-// TODO: fix formal decl
-int foo(a: int, b: int) {
+/*int foo(a: int, b: float) {
 	a = 1;
 	b = 2;
 	a + b;
@@ -38,13 +37,12 @@ int foo(a: int, b: int) {
 
 int main() {
 	var v = 1;
+	var s = "123";
+	var ss = v + a;
 	a = 1;
 	b = 2;
 	a + b;
 	p = false;
-	var s = "123";
-
-	//pred = false;
 
 }
 

@@ -50,8 +50,14 @@ let check(globals, functions) =
 
   (* Return a variable type from our local symbol table *)
   let type_of_identifier s symbols =
-    try StringMap.find s symbols
-    with Not_found -> raise (Failure ("undeclared identifier " ^ s))
+    try Hashtbl.find symbols s
+    with Not_found -> Hashtbl.iter (fun x y -> Printf.printf "%s, " x) symbols; raise (Failure ("undeclared identifier " ^ s))
+  in
+
+  let add_symbols id t sym = 
+    try let _ = Hashtbl.find sym id in
+    raise (Failure ("symbol " ^ id ^ " is duplicate"))
+    with Not_found -> Hashtbl.add sym id t
   in
 
   (* Raise an exception if the given rvalue type cannot be assigned to
@@ -69,8 +75,7 @@ let check(globals, functions) =
     (* Make sure no globals duplicate *)
     let global_t = List.map (fun (t, id, e) -> t, id) globals in check_dup_binds "global" global_t;
 
-    let globals' = List.map (fun (t, id, e) -> t, id) globals in
-    let global_symbols = List.fold_left (fun m (t, id) -> StringMap.add id t m) StringMap.empty globals' in
+    let global_symbols = Hashtbl.create 16 in
 
     (* disallow function calls in the global scope *)
     let rec check_global_expr = function
@@ -135,6 +140,7 @@ let check(globals, functions) =
 
     let check_global_bind b = let (t, v, e) = b in
       let (t', e') = check_global_expr e in
+      let _ = add_symbols v t global_symbols in
       if e = DefaultValue then begin
       match t with
       | Int -> t, v, (Int, SLiteral 0)
@@ -148,7 +154,7 @@ let check(globals, functions) =
         check_assign t t' err, v, (t', e')
     in
   List.map check_global_bind globals in
-  check_globals globals in 
+  check_globals globals in
 
 
   let check_func func =
@@ -156,11 +162,10 @@ let check(globals, functions) =
     check_dup_binds "formal" func.formals;
 
     (* Build local symbol table of variables for this function *)
+    let symbols = Hashtbl.create 16 in
     let globals' = List.map (fun (t, id, e) -> t, id) globals in
-    let symbols = List.fold_left (fun m (t, id) -> StringMap.add id t m) StringMap.empty (globals' @ func.formals)
+    let _ = List.iter (fun (t, id) -> Hashtbl.add symbols id t) (globals' @ func.formals)
     in
-
-    (* let to_string  *)
 
     (* Return a semantically-checked expression, i.e., with a type *)
     let rec check_expr = function
@@ -171,12 +176,13 @@ let check(globals, functions) =
       | StringLit l -> (String, SStringLit l)
       | Id var -> let t' = type_of_identifier var symbols in (t', SId var)
       | Assign(var, e) as ex ->
+        print_string ("assign " ^ var ^ "\n"); Hashtbl.iter (fun x y -> Printf.printf "%s, " x) symbols;
         let lt = type_of_identifier var symbols
         and (rt, e') = check_expr e in
         let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^
                   string_of_typ rt ^ " in " ^ string_of_expr ex
         in
-        (check_assign lt rt err, SAssign(var, (rt, e')))
+        (check_assign lt rt err, SAssign(var, (lt, e')))
 
       | Binop(e1, op, e2) as e ->
         let (t1, e1') = check_expr e1
@@ -191,7 +197,8 @@ let check(globals, functions) =
           let t = match op with
               Add | Sub when t1 = Int -> Int
             | Equal | Neq -> Bool
-            | Less when t1 = Int -> Bool
+            | Less when t1 = Int || t1 = Float -> Bool
+            | Greater when t1 = Int || t1 = Float -> Bool
             | And | Or when t1 = Bool -> Bool
             | _ -> raise (Failure err)
           in
@@ -199,19 +206,22 @@ let check(globals, functions) =
         (* Allows for implicit string casting, e.g. 3+"1"="31" *)
         else if op = Add && (t1 = String || t2 = String) then begin
           match t1, t2 with
-            | String, t -> begin
-              match t with
-              | Int | Float -> (String, SBinop((String, e1'), Add, (String, e2')))
-              | _ -> raise (Failure err)
-            end
-            | t, String -> begin
+            | String, t | t, String -> begin
               match t with
               | Int | Float -> (String, SBinop((String, e1'), Add, (String, e2')))
               | _ -> raise (Failure err)
             end
             | _ -> raise (Failure err)
           end
-        else raise (Failure err)
+        else begin
+          match op with
+          | _ when op != And && op != Or -> let t' = begin
+            match t1, t2 with
+            | Int, Float | Float, Int -> Float
+            | _, _ -> raise (Failure err)
+          end in (t', SBinop((t', e1'), op, (t', e2')))
+          | _ -> raise (Failure err)
+        end
       | Unop(op, e) -> begin
         match op with 
         | Not ->
@@ -245,6 +255,8 @@ let check(globals, functions) =
 
     let check_bind b = let (t, v, e) = b in
       let (t', e') = check_expr e in
+      let _ = add_symbols v t symbols in
+      let _ = print_string "add symbol: "; Hashtbl.iter (fun x y -> Printf.printf "%s, " x) symbols in
       if e = DefaultValue then begin
       match t with
       | Int -> t, v, (Int, SLiteral 0)
@@ -256,8 +268,7 @@ let check(globals, functions) =
       else if t = Void then t', v, (t', e')
       else let err = "type mismatch. " ^ v ^ ": " ^ string_of_typ t ^ ", received " ^ string_of_typ t' in
         check_assign t t' err, v, (t', e')
-      in
-
+    in
 
     let rec check_stmt_list = function
         [] -> []
@@ -289,6 +300,7 @@ let check(globals, functions) =
       (* var x = 2 *)
       | Bind(b) -> let sb = check_bind b in SBind(sb)
       (* | For(e1, e2, e3, st) -> SFor(e1, e2, e3, ) *)
+
     
     in (* body of check_func *)
     { srtyp = func.rtyp;
