@@ -176,7 +176,7 @@ let check(globals, functions) =
       | StringLit l -> (String, SStringLit l)
       | Id var -> let t' = type_of_identifier var symbols in (t', SId var)
       | Assign(var, e) as ex ->
-        print_string ("assign " ^ var ^ "\n"); Hashtbl.iter (fun x y -> Printf.printf "%s, " x) symbols;
+        (* print_string ("assign " ^ var ^ "\n"); Hashtbl.iter (fun x y -> Printf.printf "%s, " x) symbols; *)
         let lt = type_of_identifier var symbols
         and (rt, e') = check_expr e in
         let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^
@@ -256,7 +256,7 @@ let check(globals, functions) =
     let check_bind b = let (t, v, e) = b in
       let (t', e') = check_expr e in
       let _ = add_symbols v t symbols in
-      let _ = print_string "add symbol: "; Hashtbl.iter (fun x y -> Printf.printf "%s, " x) symbols in
+      (* let _ = print_string ("add symbol: " ^ v ^ "\n"); Hashtbl.iter (fun x y -> Printf.printf "%s, " x) symbols in *)
       if e = DefaultValue then begin
       match t with
       | Int -> t, v, (Int, SLiteral 0)
@@ -273,7 +273,7 @@ let check(globals, functions) =
     let rec check_stmt_list = function
         [] -> []
       | Block sl :: sl'  -> check_stmt_list (sl @ sl') (* Flatten blocks *)
-      | s :: sl -> check_stmt s :: check_stmt_list sl
+      | s :: sl -> let p1 = check_stmt s in let p2 = check_stmt_list sl in p1 :: p2
     (* Return a semantically-checked statement i.e. containing sexprs *)
     and check_stmt = function
       (* A block is correct if each statement is correct and nothing

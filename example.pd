@@ -1,6 +1,7 @@
 var a: int;
 var b: int;
 var p: boolean;
+var x = a + b;
 //p = 2;
 
 // one-line comment
@@ -9,7 +10,7 @@ var p: boolean;
   multi-line comment
 */
 
-/*int foo(a: int, b: float) {
+int foo(a: int, b: float) {
 	a = 1;
 	b = 2;
 	a + b;
@@ -31,19 +32,15 @@ var p: boolean;
 		a - b;
 	}
 
-
-
 }
+
+// TODO: return, +=, -=, etc. 
+
 
 int main() {
 	var v = 1;
 	var s = "123";
-	var ss = v + a;
-	a = 1;
-	b = 2;
-	a + b;
-	p = false;
-
+	var ss = v + 1;
 }
 
 var n: int;
