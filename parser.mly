@@ -97,6 +97,7 @@ stmt:
   /* return */
   | RETURN expr SEMI                        { Return $2      }
   | FOR LPAREN expr expr expr RPAREN stmt	{ For($3, $4, $5, $7) }
+  | vdecl SEMI									{ Bind($1) }
   
 expr:
     LITERAL          { Literal($1)            }

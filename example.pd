@@ -10,7 +10,7 @@ var p: boolean;
 */
 
 // TODO: fix formal decl
-/*int foo(a: int) {
+int foo(a: int, b: int) {
 	a = 1;
 	b = 2;
 	a + b;
@@ -19,11 +19,15 @@ var p: boolean;
 	while(p) {
 		a + b;
 	}
-}*/
+}
 
 int main() {
 	var v = 1;
-	
+	a = 1;
+	b = 2;
+	a + b;
+	p = false;
+	var s = "123";
 
 	//pred = false;
 
