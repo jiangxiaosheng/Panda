@@ -10,7 +10,7 @@ var p: boolean;
 */
 
 // TODO: fix formal decl
-int foo(var a: int) {
+/*int foo(a: int) {
 	a = 1;
 	b = 2;
 	a + b;
@@ -19,18 +19,11 @@ int foo(var a: int) {
 	while(p) {
 		a + b;
 	}
-}
+}*/
 
 int main() {
-	var v: boolean;
-	var x: string;
-	var f: float;
-	x = "hello world";
-	v = true;
-	v = !v;
-	f = 1.23;
-	print(x);
-	n += 1;
+	var v = 1;
+	
 
 	//pred = false;
 

@@ -2,8 +2,8 @@
 	open Ast
 %}
 
-%token SEMI LPAREN RPAREN LBRACE RBRACE PLUS MINUS ASSIGN PLUSEQ MINUSEQ STAREQ SLASHEQ
-%token EQ NEQ LT GT AND OR NOT
+%token SEMI LPAREN RPAREN LBRACE RBRACE PLUS MINUS MULTIPLY DIVIDE MOD ASSIGN PLUSEQ MINUSEQ STAREQ SLASHEQ
+%token EQ NEQ LT GT AND OR NOT 
 %token IF ELSE WHILE INT BOOL
 /* return, COMMA token */
 %token RETURN COMMA
@@ -19,12 +19,15 @@
 %type <Ast.program> program
 
 %right ASSIGN
-%nonassoc NOT
+
 %left OR
 %left AND
 %left EQ NEQ
 %left LT GT
 %left PLUS MINUS
+%left MULTIPLY DIVIDE MOD 
+%nonassoc NOT
+%nonassoc LPAREN RPAREN
 %nonassoc ID LITERAL BLIT FLIT SLIT
 
 
@@ -41,6 +44,7 @@ decls:
 
 // var x: string;
 // var x = 1
+// foo(x: int)
 vdecl:
  | VAR ID COLON typ { ($4, $2, DefaultValue) }
  | VAR ID COLON typ ASSIGN expr { ($4, $2, $6) }
@@ -112,7 +116,7 @@ expr:
   | ID ASSIGN expr   { Assign($1, $3)    	}
   | LPAREN expr RPAREN { $2                   }
   | ID LPAREN args_opt RPAREN { Call ($1, $3)  }
-//   foo(a, b)
+//  var x = foo(a)
   /* call */
 
 

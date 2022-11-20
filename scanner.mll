@@ -36,6 +36,9 @@ rule token = parse
 | ','      { COMMA }
 | '+'      { PLUS }
 | '-'      { MINUS }
+| '*'		{ MULTIPLY }
+| '/'		{ DIVIDE }
+| '%'		{ MOD }
 | '='      { ASSIGN }
 | ":"		{ COLON }
 | "=="     { EQ }
