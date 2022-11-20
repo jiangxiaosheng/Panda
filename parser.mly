@@ -8,6 +8,7 @@
 /* return, COMMA token */
 %token RETURN COMMA
 %token VAR FOR COLON STRING FLOAT VOID LIST MAP FUNC CONT BREAK
+%token IFX
 %token <int> LITERAL
 %token <bool> BLIT
 %token <float> FLIT
@@ -26,9 +27,12 @@
 %left LT GT
 %left PLUS MINUS
 %left MULTIPLY DIVIDE MOD 
+%nonassoc IFX
 %nonassoc NOT
 %nonassoc LPAREN RPAREN
+%nonassoc ELSE
 %nonassoc ID LITERAL BLIT FLIT SLIT
+
 
 
 %%
@@ -86,18 +90,22 @@ stmt_list:
   /* nothing */ { [] }
   | stmt stmt_list  { $1::$2 }
 
+
 stmt:
     expr SEMI                               { Expr $1  }
   | LBRACE stmt_list RBRACE                 { Block $2 }
   /* if (condition) { block1} else {block2} */
   /* if (condition) stmt else stmt */
+  | IF LPAREN expr RPAREN stmt{ Ifd($3, $5) } 
   | IF LPAREN expr RPAREN stmt ELSE stmt    { If($3, $5, $7) }
+  
   /* while (condition) stmt */
   | WHILE LPAREN expr RPAREN stmt           { While($3, $5)  }
   /* return */
   | RETURN expr SEMI                        { Return $2      }
-  | FOR LPAREN expr expr expr RPAREN stmt	{ For($3, $4, $5, $7) }
+  | FOR LPAREN vdecl SEMI expr SEMI expr RPAREN stmt	{ For($3, $5, $7, $9) }
   | vdecl SEMI									{ Bind($1) }
+
   
 expr:
     LITERAL          { Literal($1)            }

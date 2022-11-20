@@ -19,6 +19,21 @@ int foo(a: int, b: int) {
 	while(p) {
 		a + b;
 	}
+
+
+	if(!p){
+		b - a;
+
+		if(p){
+			a + 1;
+		}
+	}
+	else{
+		a - b;
+	}
+
+
+
 }
 
 int main() {

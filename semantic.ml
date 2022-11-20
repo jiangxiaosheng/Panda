@@ -271,8 +271,13 @@ let check(globals, functions) =
       | Expr e -> SExpr (check_expr e)
       | If(e, st1, st2) ->
         SIf(check_bool_expr e, check_stmt st1, check_stmt st2)
+      | Ifd(e, st1) ->
+        SIfd(check_bool_expr e, check_stmt st1)
       | While(e, st) ->
         SWhile(check_bool_expr e, check_stmt st)
+        (* TODO: uncomment after  fix binding *)
+      (* | For(e1, e2, e3, st) ->
+        SFor(check_bind e1,check_bool_expr e2, check_expr e3, check_stmt st)   *)
       | Return e ->
         let (t, e') = check_expr e in
         if t = func.rtyp then SReturn (t, e')
