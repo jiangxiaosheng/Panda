@@ -11,6 +11,7 @@ and sx =
   | SBinop of sexpr * binop * sexpr
   | SUnop of unop * sexpr
   | SAssign of string * sexpr
+  | SOpAssign of string * sexpr * assignop
   (* call *)
   | SCall of string * sexpr list
   | SList of sexpr list
@@ -25,6 +26,7 @@ type sstmt =
   | SIf of sexpr * sstmt list * sstmt list
   | SIfd of sexpr * sstmt list
   | SWhile of sexpr * sstmt list
+  | SBreak | SContinue
   (* return *)
   | SReturn of sexpr
   | SBind of sbind
@@ -54,6 +56,7 @@ let rec string_of_sexpr (t, e) =
         string_of_sexpr e1 ^ " " ^ string_of_binop o ^ " " ^ string_of_sexpr e2
       | SUnop(o, e) -> string_of_unop o ^ string_of_sexpr e
       | SAssign(v, e) -> v ^ " = " ^ string_of_sexpr e
+      | SOpAssign(v, e, op) -> v ^ " " ^ string_of_assignop op ^ " " ^ string_of_sexpr e
       | SCall(f, el) ->
           f ^ "(" ^ String.concat ", " (List.map string_of_sexpr el) ^ ")"
       | SList(el) -> "[" ^ String.concat ", " (List.map string_of_sexpr el) ^ "]"
@@ -79,6 +82,8 @@ let rec string_of_sstmt = function
   | SFor(sb, test, tail, st) -> "for (" ^ string_of_sbind sb ^ "; " ^ string_of_sexpr test
     ^ "; " ^ string_of_sexpr tail ^ ") {\n" ^ String.concat "" (List.map string_of_sstmt st) ^ "}\n"
   | SEmpty -> ""
+  | SBreak -> "break()\n" 
+  | SContinue -> "continue()\n"
 
 let string_of_sfdecl fdecl =
   string_of_typ fdecl.srtyp ^ " " ^

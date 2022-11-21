@@ -86,6 +86,14 @@ let check(globals, functions) =
       in
       (check_assign lt rt err, SAssign(var, (rt, e')))
 
+    | OpAssign(var, e, op) as ex ->
+      let lt = type_of_identifier var symbols
+      and (rt, e') = check_expr e symbols in
+      let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^
+                string_of_typ rt ^ " in " ^ string_of_expr ex
+      in
+      (check_assign lt rt err, SOpAssign(var, (lt, e'), op))
+
     | Binop(e1, op, e2) as e ->
       let (t1, e1') = check_expr e1 symbols
       and (t2, e2') = check_expr e2 symbols in
@@ -218,7 +226,8 @@ let check(globals, functions) =
         SIfd(check_bool_expr e, check_stmt_list st1)
       | While(e, st) ->
         SWhile(check_bool_expr e, check_stmt_list st)
-
+      | Break -> SBreak
+      | Continue -> SContinue
       | Return e ->
         let (t, e') = check_expr e symbols in
         if t = func.rtyp then SReturn (t, e')
