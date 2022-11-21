@@ -2,6 +2,8 @@ type binop = Add | Sub | Equal | Neq | Less | Greater | And | Or
 
 type unop = Not
 
+type assignop = AddEq | SubEq | MultEq | DivEq
+
 type typ = Int | Bool | Float | String | Void
 
 type default_value = IntDefault | BoolDefault | FloatDefalt
@@ -17,6 +19,7 @@ type expr =
   | Binop of expr * binop * expr
   (* var x = 3 *)
   | Assign of string * expr
+  | OpAssign of string * expr * assignop
   (* var x: int = 3 *)
   (* | TypedAssign of typ * string * expr *)
   (* function call *)
@@ -36,6 +39,7 @@ type stmt =
   | Ifd of expr * stmt list
   | While of expr * stmt list
   (* return *)
+  | Break | Continue
   | Return of expr
   | Bind of bind
   | For of bind * expr * expr * stmt list
@@ -66,6 +70,12 @@ let string_of_binop = function
 let string_of_unop = function
   Not -> "!"
 
+let string_of_assignop = function
+  AddEq -> "+="
+  | SubEq -> "-="
+  | MultEq -> "*="
+  | DivEq -> "/="
+
 let string_of_typ = function
     Int -> "int"
   | Bool -> "bool"
@@ -88,6 +98,7 @@ let rec string_of_expr = function
   (* | TypedAssign(t, v, e) -> v ^ ":" ^ string_of_typ t ^ " = " ^ string_of_expr e *)
   | Call(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
+  | OpAssign(v, e, op) -> v ^ " " ^ string_of_assignop op ^ " " ^ string_of_expr e
 
 
 let string_of_bind(b) = let (t, id, e) = b in "var " ^ id ^ ": " ^ string_of_typ t ^ " = " ^string_of_expr e ^ ";\n"
@@ -97,7 +108,7 @@ let rec string_of_stmt = function
     "{\n" ^ String.concat "" (List.map string_of_stmt stmts) ^ "}\n"
   | Expr(expr) -> string_of_expr expr ^ ";\n"
   | Return(expr) -> "return " ^ string_of_expr expr ^ ";\n"
-  | If(e, s1, s2) -> "if (" ^ string_of_expr e ^ ") {" ^
+  | If(e, s1, s2) -> "if (" ^ string_of_expr e ^ ") {\n" ^
     String.concat "" (List.map string_of_stmt s1) ^ "} " ^ "else {" ^ 
     String.concat "" (List.map string_of_stmt s1) ^ "}\n"
   | Ifd(e, s1) ->  "if (" ^ string_of_expr e ^ ") {" ^
@@ -108,6 +119,8 @@ let rec string_of_stmt = function
   | For(e1, e2, e3, st) -> "for (" ^ string_of_bind e1 ^ " " ^ string_of_expr e2 ^ "; " ^ string_of_expr e3 ^
                           ")\n" ^ String.concat "\n" (List.map string_of_stmt st)
   | Empty -> ""
+  | Break -> "break()\n" 
+  | Continue -> "continue()\n"
 
 
 let string_of_fdecl fdecl =

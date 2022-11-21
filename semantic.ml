@@ -183,6 +183,13 @@ let check(globals, functions) =
                   string_of_typ rt ^ " in " ^ string_of_expr ex
         in
         (check_assign lt rt err, SAssign(var, (lt, e')))
+      | OpAssign(var, e, op) as ex ->
+        let lt = type_of_identifier var symbols
+        and (rt, e') = check_expr e in
+        let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^
+                  string_of_typ rt ^ " in " ^ string_of_expr ex
+        in
+        (check_assign lt rt err, SOpAssign(var, (lt, e'), op))
 
       | Binop(e1, op, e2) as e ->
         let (t1, e1') = check_expr e1
@@ -289,6 +296,8 @@ let check(globals, functions) =
         (* TODO: uncomment after  fix binding *)
       (* | For(e1, e2, e3, st) ->
         SFor(check_bind e1,check_bool_expr e2, check_expr e3, check_stmt st)   *)
+      | Break -> SBreak
+      | Continue -> SContinue
       | Return e ->
         let (t, e') = check_expr e in
         if t = func.rtyp then SReturn (t, e')

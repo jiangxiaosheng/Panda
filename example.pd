@@ -3,6 +3,10 @@ var a: int
 var b = 3
 
 func foo(a: int): int {
+	a += 1
+	a -= 1
+	a *= 1
+	a /= 1
 	a = a + 2
 	for var i = 0; i < 10; i + 1 {
 		print("" + a)
@@ -15,6 +19,10 @@ func foo(a: int): int {
 
 	while a < 2 {
 		a = a + 1
+		if a > 2 {
+			break
+		}
+		continue
 	}
 }
 

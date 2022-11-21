@@ -47,10 +47,10 @@ rule token = parse
 | "=="     { EQ }
 | "!="     { NEQ }
 | '!'		{ NOT }
-| "+="		{ PLUSEQ }
-| "-="		{ MINUSEQ }
-| "*="		{ STAREQ }
-| "/="		{ SLASHEQ }
+| "+="		{ PLUSASSIGN }
+| "-="		{ MINUASSIGN }
+| "*="		{ MULTASSIGN }
+| "/="		{ DIVASSIGN }
 | '<'      { LT }
 | '>'	   { GT }
 | "&&"     { AND }

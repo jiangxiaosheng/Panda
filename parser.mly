@@ -3,13 +3,13 @@
 %}
 
 %token SEMI NEWLINE LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE 
-%token PLUS MINUS MULTIPLY DIVIDE MOD ASSIGN PLUSEQ MINUSEQ STAREQ SLASHEQ
+%token PLUS MINUS MULTIPLY DIVIDE MOD ASSIGN PLUSASSIGN MINUASSIGN MULTASSIGN DIVASSIGN
 %token EQ NEQ LT GT AND OR NOT 
 %token IF ELSE WHILE INT BOOL
 /* return, COMMA token */
 %token RETURN COMMA
 %token VAR FOR COLON STRING FLOAT VOID LIST MAP FUNC CONT BREAK
-%token IFX
+%token BREAK CONT 
 %token <int> LITERAL
 %token <bool> BLIT
 %token <float> FLIT
@@ -20,7 +20,7 @@
 %start program
 %type <Ast.program> program
 
-%right ASSIGN
+%right ASSIGN PLUSASSIGN MINUASSIGN MULTASSIGN DIVASSIGN
 
 %left OR
 %left AND
@@ -28,9 +28,9 @@
 %left LT GT
 %left PLUS MINUS
 %left MULTIPLY DIVIDE MOD 
-%nonassoc IFX
 %nonassoc NOT
 %nonassoc LPAREN RPAREN
+%nonassoc LBRACE RBRACE
 %nonassoc ELSE
 %nonassoc ID LITERAL BLIT FLIT SLIT
 %nonassoc NEWLINE
@@ -112,7 +112,8 @@ stmt:
   /* if condition { stmt } else { stmt } */
   | IF expr LBRACE stmt_list RBRACE			{ Ifd($2, $4) } 
   | IF expr LBRACE stmt_list RBRACE ELSE LBRACE stmt_list RBRACE   { If($2, $4, $8) }
-  
+  | BREAK NEWLINE { Break }
+  | CONT NEWLINE { Continue }
   /* while (condition) stmt */
   | WHILE expr LBRACE stmt_list RBRACE          { While($2, $4)  }
   /* return */
@@ -137,6 +138,10 @@ expr:
   | expr OR     expr { Binop($1, Or,    $3)   }
   | NOT expr		{ Unop(Not, $2) }
   | ID ASSIGN expr   { Assign($1, $3)    	}
+  | ID PLUSASSIGN expr {OpAssign($1, $3, AddEq)}
+  | ID MINUASSIGN expr {OpAssign($1, $3, SubEq)}
+  | ID MULTASSIGN expr {OpAssign($1, $3, MultEq)}
+  | ID DIVASSIGN expr {OpAssign($1, $3, DivEq)}
   | LPAREN expr RPAREN { $2                   }
   | ID LPAREN args_opt RPAREN { Call ($1, $3)  }
 //  var x = foo(a)
