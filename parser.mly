@@ -96,18 +96,17 @@ stmt_list:
 stmt:
   | expr NEWLINE                           	{ Expr $1  }
   | NEWLINE									{ Empty }
-  | SEMI									{ Empty }
   | LBRACE stmt_list RBRACE                 { Block $2 }
-  /* if (condition) { block1} else {block2} */
-  /* if (condition) stmt else stmt */
-  | IF LPAREN expr RPAREN stmt{ Ifd($3, $5) } 
-  | IF LPAREN expr RPAREN stmt ELSE stmt    { If($3, $5, $7) }
+  /* if condition { block1} else {block2} */
+  /* if condition { stmt } else { stmt } */
+  | IF expr LBRACE stmt_list RBRACE			{ Ifd($2, $4) } 
+  | IF expr LBRACE stmt_list RBRACE ELSE LBRACE stmt_list RBRACE   { If($2, $4, $8) }
   
   /* while (condition) stmt */
-  | WHILE LPAREN expr RPAREN stmt           { While($3, $5)  }
+  | WHILE expr LBRACE stmt_list RBRACE          { While($2, $4)  }
   /* return */
   | RETURN expr NEWLINE                        { Return $2      }
-  | FOR LPAREN vdecl SEMI expr SEMI expr RPAREN stmt	{ For($3, $5, $7, $9) }
+  | FOR vdecl SEMI expr SEMI expr LBRACE stmt_list RBRACE	{ For($2, $4, $6, $8) }
   | vdecl NEWLINE									{ Bind($1) }
 
   

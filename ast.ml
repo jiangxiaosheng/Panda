@@ -32,13 +32,13 @@ type stmt =
     Block of stmt list
   | Empty
   | Expr of expr
-  | If of expr * stmt * stmt
-  | Ifd of expr * stmt
-  | While of expr * stmt
+  | If of expr * stmt list * stmt list
+  | Ifd of expr * stmt list
+  | While of expr * stmt list
   (* return *)
   | Return of expr
   | Bind of bind
-  | For of bind * expr * expr * stmt
+  | For of bind * expr * expr * stmt list
 
 
 (* func_def: ret_typ fname formals locals body *)
@@ -97,14 +97,16 @@ let rec string_of_stmt = function
     "{\n" ^ String.concat "" (List.map string_of_stmt stmts) ^ "}\n"
   | Expr(expr) -> string_of_expr expr ^ ";\n"
   | Return(expr) -> "return " ^ string_of_expr expr ^ ";\n"
-  | If(e, s1, s2) ->  "if (" ^ string_of_expr e ^ ")\n" ^
-                      string_of_stmt s1 ^ "else\n" ^ string_of_stmt s2
-  | Ifd(e, s1) ->  "if (" ^ string_of_expr e ^ ")\n" ^
-    string_of_stmt s1
-  | While(e, s) -> "while (" ^ string_of_expr e ^ ") " ^ string_of_stmt s
+  | If(e, s1, s2) -> "if (" ^ string_of_expr e ^ ") {" ^
+    String.concat "" (List.map string_of_stmt s1) ^ "} " ^ "else {" ^ 
+    String.concat "" (List.map string_of_stmt s1) ^ "}\n"
+  | Ifd(e, s1) ->  "if (" ^ string_of_expr e ^ ") {" ^
+    String.concat "" (List.map string_of_stmt s1) ^ "}\n"
+  | While(e, s) -> "while (" ^ string_of_expr e ^ ") {\n" ^ 
+    String.concat "" (List.map string_of_stmt s) ^ "}\n"
   | Bind(b) -> string_of_bind b
   | For(e1, e2, e3, st) -> "for (" ^ string_of_bind e1 ^ " " ^ string_of_expr e2 ^ "; " ^ string_of_expr e3 ^
-                          ")\n" ^ string_of_stmt st
+                          ")\n" ^ String.concat "\n" (List.map string_of_stmt st)
   | Empty -> ""
 
 

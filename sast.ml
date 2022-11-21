@@ -21,13 +21,13 @@ type sstmt =
     SBlock of sstmt list
   | SEmpty
   | SExpr of sexpr
-  | SIf of sexpr * sstmt * sstmt
-  | SIfd of sexpr * sstmt
-  | SWhile of sexpr * sstmt
+  | SIf of sexpr * sstmt list * sstmt list
+  | SIfd of sexpr * sstmt list
+  | SWhile of sexpr * sstmt list
   (* return *)
   | SReturn of sexpr
   | SBind of sbind
-  | SFor of sexpr * sexpr * sexpr * sstmt
+  | SFor of sbind * sexpr * sexpr * sstmt list
 
 
 type sfunc_def = {
@@ -59,26 +59,29 @@ let rec string_of_sexpr (t, e) =
       
 
 
-let string_of_sbind(b) = let (t, id, e) = b in "var " ^ id ^ ": " ^ string_of_typ t ^ string_of_sexpr e ^ ";\n"
+let string_of_sbind(b) = let (t, id, e) = b in "var " ^ id ^ ": " ^ string_of_typ t ^ string_of_sexpr e ^ "\n"
 
 let rec string_of_sstmt = function
     SBlock(stmts) ->
     "{\n" ^ String.concat "" (List.map string_of_sstmt stmts) ^ "}\n"
-  | SExpr(expr) -> string_of_sexpr expr ^ ";\n"
+  | SExpr(expr) -> string_of_sexpr expr ^ "\n"
   | SReturn(expr) -> "return " ^ string_of_sexpr expr ^ ";\n"
-  | SIf(e, s1, s2) ->  "if (" ^ string_of_sexpr e ^ ")\n" ^
-                       string_of_sstmt s1 ^ "else\n" ^ string_of_sstmt s2
-  | SIfd(e, s1) ->  "if (" ^ string_of_sexpr e ^ ")\n" ^
-    string_of_sstmt s1 
-  | SWhile(e, s) -> "while (" ^ string_of_sexpr e ^ ") " ^ string_of_sstmt s
+  | SIf(e, s1, s2) -> "if (" ^ string_of_sexpr e ^ ") {\n" ^
+    String.concat "" (List.map string_of_sstmt s1) ^ "} " ^ "else {\n" ^ 
+    String.concat "" (List.map string_of_sstmt s1) ^ "}\n"
+  | SIfd(e, s1) -> "if (" ^ string_of_sexpr e ^ ") {\n" ^
+    String.concat "" (List.map string_of_sstmt s1) ^ "}\n"
+  | SWhile(e, s) -> "while (" ^ string_of_sexpr e ^ ") {\n" ^ 
+    String.concat "" (List.map string_of_sstmt s) ^ "}\n"
   | SBind(b) -> string_of_sbind b
-  | SFor(e1, e2, e3, st) -> "not implemented"
+  | SFor(sb, test, tail, st) -> "for (" ^ string_of_sbind sb ^ "; " ^ string_of_sexpr test
+    ^ "; " ^ string_of_sexpr tail ^ ") {\n" ^ String.concat "" (List.map string_of_sstmt st) ^ "}\n"
   | SEmpty -> ""
 
 let string_of_sfdecl fdecl =
   string_of_typ fdecl.srtyp ^ " " ^
   fdecl.sfname ^ "(" ^ String.concat ", " (List.map snd fdecl.sformals) ^
-  ")\n{\n" ^
+  ") {\n" ^
   String.concat "" (List.map string_of_sstmt fdecl.sbody) ^
   "}\n"
 

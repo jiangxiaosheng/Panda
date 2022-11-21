@@ -255,7 +255,6 @@ let check(globals, functions) =
 
     let check_bind b = let (t, v, e) = b in
       let (t', e') = check_expr e in
-      print_string ("add symbol " ^ v ^ " with expr type " ^ string_of_typ t' ^ "\n");
       (* let _ = print_string ("add symbol: " ^ v ^ "\n"); Hashtbl.iter (fun x y -> Printf.printf "%s, " x) symbols in *)
       if e = DefaultValue then begin
       add_symbols v t symbols;
@@ -282,11 +281,11 @@ let check(globals, functions) =
         Block sl -> SBlock (check_stmt_list sl)
       | Expr e -> SExpr (check_expr e)
       | If(e, st1, st2) ->
-        SIf(check_bool_expr e, check_stmt st1, check_stmt st2)
+        SIf(check_bool_expr e, check_stmt_list st1, check_stmt_list st2)
       | Ifd(e, st1) ->
-        SIfd(check_bool_expr e, check_stmt st1)
+        SIfd(check_bool_expr e, check_stmt_list st1)
       | While(e, st) ->
-        SWhile(check_bool_expr e, check_stmt st)
+        SWhile(check_bool_expr e, check_stmt_list st)
         (* TODO: uncomment after  fix binding *)
       (* | For(e1, e2, e3, st) ->
         SFor(check_bind e1,check_bool_expr e2, check_expr e3, check_stmt st)   *)
@@ -301,7 +300,11 @@ let check(globals, functions) =
       (* var x = 2 *)
       | Bind(b) -> let sb = check_bind b in SBind(sb)
       | Empty -> SEmpty
-      (* | For(e1, e2, e3, st) -> SFor(e1, e2, e3, ) *)
+      | For(decl, test, tail, st) -> let sdecl = check_bind decl
+        in let stest = check_bool_expr test
+        in let stail = check_expr tail
+        in let sst = check_stmt_list st
+        in SFor(sdecl, stest, stail, sst)
 
     
     in (* body of check_func *)
