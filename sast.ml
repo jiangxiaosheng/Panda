@@ -19,6 +19,7 @@ type sbind = typ * string * sexpr
 
 type sstmt =
     SBlock of sstmt list
+  | SEmpty
   | SExpr of sexpr
   | SIf of sexpr * sstmt * sstmt
   | SIfd of sexpr * sstmt
@@ -55,6 +56,7 @@ let rec string_of_sexpr (t, e) =
       | SCall(f, el) ->
           f ^ "(" ^ String.concat ", " (List.map string_of_sexpr el) ^ ")"
   ) ^ ")"
+      
 
 
 let string_of_sbind(b) = let (t, id, e) = b in "var " ^ id ^ ": " ^ string_of_typ t ^ string_of_sexpr e ^ ";\n"
@@ -71,6 +73,7 @@ let rec string_of_sstmt = function
   | SWhile(e, s) -> "while (" ^ string_of_sexpr e ^ ") " ^ string_of_sstmt s
   | SBind(b) -> string_of_sbind b
   | SFor(e1, e2, e3, st) -> "not implemented"
+  | SEmpty -> ""
 
 let string_of_sfdecl fdecl =
   string_of_typ fdecl.srtyp ^ " " ^

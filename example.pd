@@ -1,46 +1,15 @@
-var a: int;
-var b: int;
-var p: boolean;
-var x = a + b;
-//p = 2;
+var a: int
 
-// one-line comment
+var b = 3
 
-/* 
-  multi-line comment
-*/
-
-int foo(a: int, b: float) {
-	a = 1;
-	b = 2;
-	a + b;
-	p = false;
-	p = !p;
-	while(p) {
-		a + b;
-	}
-
-
-	if(!p){
-		b - a;
-
-		if(p){
-			a + 1;
-		}
-	}
-	else{
-		a - b;
-	}
-
+int foo(a: int) {
+	a = a + 2
+	
 }
-
-// TODO: return, +=, -=, etc. 
-
 
 int main() {
-	var v = 1;
-	var s = "123";
-	var ss = v + 1;
+	var x = "123"
+	var v = x + 1
+	if (true)
+		print(v)
 }
-
-var n: int;

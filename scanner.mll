@@ -23,9 +23,10 @@ let backslash_escapes = ['\\' '\'' '"' 'n' 't' 'b' 'r']
 
 
 rule token = parse
-  [' ' '\t' '\r' '\n'] { token lexbuf } (* Whitespace *)
+  [' ' '\t' '\r'] { token lexbuf } (* Whitespace *)
 | "/*"     { multi_comment lexbuf }           (* Comments *)
 | "//"		{ single_comment lexbuf }
+| '\n'+		{ NEWLINE }
 | "var"		{ VAR }
 | "for"		{ FOR }
 | '('      { LPAREN }

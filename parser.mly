@@ -2,7 +2,7 @@
 	open Ast
 %}
 
-%token SEMI LPAREN RPAREN LBRACE RBRACE PLUS MINUS MULTIPLY DIVIDE MOD ASSIGN PLUSEQ MINUSEQ STAREQ SLASHEQ
+%token SEMI NEWLINE LPAREN RPAREN LBRACE RBRACE PLUS MINUS MULTIPLY DIVIDE MOD ASSIGN PLUSEQ MINUSEQ STAREQ SLASHEQ
 %token EQ NEQ LT GT AND OR NOT 
 %token IF ELSE WHILE INT BOOL
 /* return, COMMA token */
@@ -32,6 +32,7 @@
 %nonassoc LPAREN RPAREN
 %nonassoc ELSE
 %nonassoc ID LITERAL BLIT FLIT SLIT
+%nonassoc NEWLINE
 
 
 
@@ -43,7 +44,8 @@ program:
 
 decls:
    /* nothing */ { ([], [])               }
- | vdecl SEMI decls { (($1 :: fst $3), snd $3) }
+ | NEWLINE decls	{ (fst $2, snd $2) }
+ | vdecl NEWLINE decls { (($1 :: fst $3), snd $3) }
  | fdecl decls { (fst $2, ($1 :: snd $2)) }
 
 // var x: string;
@@ -92,7 +94,9 @@ stmt_list:
 
 
 stmt:
-    expr SEMI                               { Expr $1  }
+  | expr NEWLINE                           	{ Expr $1  }
+  | NEWLINE									{ Empty }
+  | SEMI									{ Empty }
   | LBRACE stmt_list RBRACE                 { Block $2 }
   /* if (condition) { block1} else {block2} */
   /* if (condition) stmt else stmt */
@@ -102,9 +106,9 @@ stmt:
   /* while (condition) stmt */
   | WHILE LPAREN expr RPAREN stmt           { While($3, $5)  }
   /* return */
-  | RETURN expr SEMI                        { Return $2      }
+  | RETURN expr NEWLINE                        { Return $2      }
   | FOR LPAREN vdecl SEMI expr SEMI expr RPAREN stmt	{ For($3, $5, $7, $9) }
-  | vdecl SEMI									{ Bind($1) }
+  | vdecl NEWLINE									{ Bind($1) }
 
   
 expr:

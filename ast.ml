@@ -30,6 +30,7 @@ type formal = typ * string
 
 type stmt =
     Block of stmt list
+  | Empty
   | Expr of expr
   | If of expr * stmt * stmt
   | Ifd of expr * stmt
@@ -104,6 +105,7 @@ let rec string_of_stmt = function
   | Bind(b) -> string_of_bind b
   | For(e1, e2, e3, st) -> "for (" ^ string_of_bind e1 ^ " " ^ string_of_expr e2 ^ "; " ^ string_of_expr e3 ^
                           ")\n" ^ string_of_stmt st
+  | Empty -> ""
 
 
 let string_of_fdecl fdecl =

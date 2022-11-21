@@ -255,9 +255,10 @@ let check(globals, functions) =
 
     let check_bind b = let (t, v, e) = b in
       let (t', e') = check_expr e in
-      let _ = add_symbols v t symbols in
+      print_string ("add symbol " ^ v ^ " with expr type " ^ string_of_typ t' ^ "\n");
       (* let _ = print_string ("add symbol: " ^ v ^ "\n"); Hashtbl.iter (fun x y -> Printf.printf "%s, " x) symbols in *)
       if e = DefaultValue then begin
+      add_symbols v t symbols;
       match t with
       | Int -> t, v, (Int, SLiteral 0)
       | Bool -> t, v, (Bool, SBoolLit(false))
@@ -265,9 +266,9 @@ let check(globals, functions) =
       | String -> t, v, (String, SStringLit(""))
       | _ -> raise (Failure "unrecognized type: ")
       end
-      else if t = Void then t', v, (t', e')
+      else if t = Void then let _ = add_symbols v t' symbols in t', v, (t', e')
       else let err = "type mismatch. " ^ v ^ ": " ^ string_of_typ t ^ ", received " ^ string_of_typ t' in
-        check_assign t t' err, v, (t', e')
+        let tt = check_assign t t' err in let _ = add_symbols v tt symbols in tt, v, (tt, e')
     in
 
     let rec check_stmt_list = function
@@ -299,6 +300,7 @@ let check(globals, functions) =
       (* var x: int = 2 *)
       (* var x = 2 *)
       | Bind(b) -> let sb = check_bind b in SBind(sb)
+      | Empty -> SEmpty
       (* | For(e1, e2, e3, st) -> SFor(e1, e2, e3, ) *)
 
     
