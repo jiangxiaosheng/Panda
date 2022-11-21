@@ -1,8 +1,9 @@
-type binop = Add | Sub | Multiply | Divide | Equal | Neq | Less | Greater | And | Or 
+type binop = Add | Sub | Multiply | Divide | Equal | Neq 
+  | Less | LessEqual | Greater | GreaterEqual | And | Or 
 
 type unop = Not
 
-type assignop = AddEq | SubEq | MultEq | DivEq
+type assignop = AddEq | SubEq | MultEq | DivEq | ModEq
 
 type typ = Int | Bool | Float | String | Void | List of typ
 
@@ -13,13 +14,14 @@ type expr =
   | FloatLit of float
   | StringLit of string
   | Id of string
+  | Cast of typ * expr
   | Unop of unop * expr
   | Binop of expr * binop * expr
   (* var x = 3 *)
   | Assign of string * expr
   | OpAssign of string * expr * assignop
-  (* var x: int = 3 *)
   | List of expr list
+  (* | ListAccess of string * int *)
   (* function call *)
   | Call of string * expr list
 
@@ -62,7 +64,9 @@ let string_of_binop = function
   | Equal -> "=="
   | Neq -> "!="
   | Less -> "<"
+  | LessEqual -> "<="
   | Greater -> ">"
+  | GreaterEqual -> ">="
   | And -> "&&"
   | Or -> "||"
 
@@ -75,6 +79,7 @@ let string_of_assignop = function
   | SubEq -> "-="
   | MultEq -> "*="
   | DivEq -> "/="
+  | ModEq -> "%="
 
 let rec string_of_typ = function
     Int -> "int"
@@ -95,6 +100,7 @@ let rec string_of_expr = function
   | Unop(o, e) -> string_of_unop o ^ " " ^ string_of_expr e
   | Binop(e1, o, e2) ->
     string_of_expr e1 ^ " " ^ string_of_binop o ^ " " ^ string_of_expr e2
+  | Cast(t, e) -> string_of_typ t ^ ": " ^ string_of_expr e
   | Assign(v, e) -> v ^ " = " ^ string_of_expr e
   (* | TypedAssign(t, v, e) -> v ^ ":" ^ string_of_typ t ^ " = " ^ string_of_expr e *)
   | Call(f, el) ->
@@ -112,7 +118,7 @@ let rec string_of_stmt = function
   | Return(expr) -> "return " ^ string_of_expr expr ^ ";\n"
   | If(e, s1, s2) -> "if (" ^ string_of_expr e ^ ") {\n" ^
     String.concat "" (List.map string_of_stmt s1) ^ "} " ^ "else {" ^ 
-    String.concat "" (List.map string_of_stmt s1) ^ "}\n"
+    String.concat "" (List.map string_of_stmt s2) ^ "}\n"
   | Ifd(e, s1) ->  "if (" ^ string_of_expr e ^ ") {" ^
     String.concat "" (List.map string_of_stmt s1) ^ "}\n"
   | While(e, s) -> "while (" ^ string_of_expr e ^ ") {\n" ^ 

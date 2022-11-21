@@ -51,7 +51,7 @@ let check(globals, functions) =
   (* Return a variable type from our local symbol table *)
   let type_of_identifier s symbols =
     try Hashtbl.find symbols s
-    with Not_found -> Hashtbl.iter (fun x y -> Printf.printf "%s, " x) symbols; raise (Failure ("undeclared identifier " ^ s))
+    with Not_found -> raise (Failure ("undeclared identifier " ^ s))
   in
 
   let add_symbols id t sym = 
@@ -107,8 +107,8 @@ let check(globals, functions) =
         let t = match op with
             Add | Sub | Multiply | Divide when t1 = Int || t1 = Float -> t1
           | Equal | Neq -> Bool
-          | Less when t1 = Int || t1 = Float -> Bool
-          | Greater when t1 = Int || t1 = Float -> Bool
+          | Less | LessEqual | Greater | GreaterEqual when t1 = Int || t1 = Float -> Bool
+          (* | Greater when t1 = Int || t1 = Float -> Bool *)
           | And | Or when t1 = Bool -> Bool
           | _ -> raise (Failure err)
         in
@@ -116,12 +116,7 @@ let check(globals, functions) =
       (* Allows for implicit string casting, e.g. 3+"1"="31" *)
       else if op = Add && (t1 = String || t2 = String) then begin
         match t1, t2 with
-          | String, t -> begin
-            match t with
-            | Int | Float -> (String, SBinop((String, e1'), Add, (String, e2')))
-            | _ -> raise (Failure err)
-          end
-          | t, String -> begin
+          | String, t | t, String -> begin
             match t with
             | Int | Float -> (String, SBinop((String, e1'), Add, (String, e2')))
             | _ -> raise (Failure err)
@@ -129,6 +124,14 @@ let check(globals, functions) =
           | _ -> raise (Failure err)
         end
       else raise (Failure err)
+
+    | Cast(t, e) -> let (t', e') = check_expr e symbols in
+      let err = "illegal casting from type: " ^ string_of_typ t' ^
+        " to type: " ^ string_of_typ t in
+      begin match t with
+      | Int -> raise (Failure "cannot cast to a list type")
+      | _ -> (check_assign t t' err, e')
+      end
 
     | Unop(op, e) -> begin
       match op with 
@@ -157,7 +160,7 @@ let check(globals, functions) =
     | List(el) -> let len = List.length el in
       if len = 0 then (Void, SList([]))
       else let fst_e = List.hd el in
-      let (fst_t', fst_e') = check_expr fst_e symbols in
+      let (fst_t', _') = check_expr fst_e symbols in
       let type_match e = let (t', se) = check_expr e symbols in
       if fst_t' = t' then (t', se)
       else raise (Failure ("type of elements in the list mismatch, " ^ 
@@ -186,7 +189,7 @@ let check(globals, functions) =
   (* check global variables declaration *)
   let check_globals globals = 
     (* Make sure no globals duplicate *)
-    let global_t = List.map (fun (t, id, e) -> t, id) globals in check_dup_binds "global" global_t;
+    let global_t = List.map (fun (t, id, _) -> t, id) globals in check_dup_binds "global" global_t;
 
     let global_symbols = Hashtbl.create 16 in
     List.map (fun g -> check_bind g global_symbols) globals in
@@ -199,7 +202,7 @@ let check(globals, functions) =
 
     (* Build local symbol table of variables for this function *)
     let symbols = Hashtbl.create 16 in
-    let globals' = List.map (fun (t, id, e) -> t, id) globals in
+    let globals' = List.map (fun (t, id, _) -> t, id) globals in
     let _ = List.iter (fun (t, id) -> Hashtbl.add symbols id t) (globals' @ func.formals)
     in
 

@@ -3,8 +3,8 @@
 %}
 
 %token SEMI NEWLINE LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE 
-%token PLUS MINUS MULTIPLY DIVIDE MOD ASSIGN PLUSASSIGN MINUASSIGN MULTASSIGN DIVASSIGN
-%token EQ NEQ LT GT AND OR NOT 
+%token PLUS MINUS MULTIPLY DIVIDE MOD ASSIGN PLUSASSIGN MINUASSIGN MULTASSIGN DIVASSIGN MODASSIGN
+%token EQ NEQ LT GT LTEQ GTEQ AND OR NOT 
 %token IF ELSE WHILE INT BOOL
 /* return, COMMA token */
 %token RETURN COMMA
@@ -20,12 +20,12 @@
 %start program
 %type <Ast.program> program
 
-%right ASSIGN PLUSASSIGN MINUASSIGN MULTASSIGN DIVASSIGN
+%right ASSIGN PLUSASSIGN MINUASSIGN MULTASSIGN DIVASSIGN MODASSIGN
 
 %left OR
 %left AND
 %left EQ NEQ
-%left LT GT
+%left LT GT LTEQ GTEQ
 %left PLUS MINUS
 %left MULTIPLY DIVIDE MOD 
 %nonassoc NOT
@@ -129,6 +129,7 @@ expr:
   | FLIT			{ FloatLit($1) }
   | SLIT			{ StringLit($1) }
   | ID               { Id($1)                 }
+//   | typ LPAREN expr RPAREN		{  }
   | expr PLUS   expr { Binop($1, Add,   $3)   }
   | expr MINUS  expr { Binop($1, Sub,   $3)   }
   | expr EQ     expr { Binop($1, Equal, $3)   }
@@ -136,15 +137,18 @@ expr:
   | expr MULTIPLY expr	{ Binop($1, Multiply, $3) }
   | expr DIVIDE expr { Binop($1, Divide, $3) }
   | expr LT     expr { Binop($1, Less,  $3)   }
+  | expr LTEQ	expr { Binop($1, LessEqual, $3) }
   | expr GT     expr { Binop($1, Greater,  $3)   }
+  | expr GTEQ 	expr { Binop($1, GreaterEqual, $3) }
   | expr AND    expr { Binop($1, And,   $3)   }
   | expr OR     expr { Binop($1, Or,    $3)   }
   | NOT expr		{ Unop(Not, $2) }
   | ID ASSIGN expr   { Assign($1, $3)    	}
-  | ID PLUSASSIGN expr {OpAssign($1, $3, AddEq)}
-  | ID MINUASSIGN expr {OpAssign($1, $3, SubEq)}
-  | ID MULTASSIGN expr {OpAssign($1, $3, MultEq)}
-  | ID DIVASSIGN expr {OpAssign($1, $3, DivEq)}
+  | ID PLUSASSIGN expr { OpAssign($1, $3, AddEq) }
+  | ID MINUASSIGN expr { OpAssign($1, $3, SubEq) }
+  | ID MULTASSIGN expr { OpAssign($1, $3, MultEq) }
+  | ID DIVASSIGN expr { OpAssign($1, $3, DivEq) }
+  | ID MODASSIGN expr	{ OpAssign($1, $3, ModEq) }
   | LPAREN expr RPAREN { $2                   }
   | ID LPAREN args_opt RPAREN { Call ($1, $3)  }
   | LBRACKET args_opt RBRACKET	{ List($2) }

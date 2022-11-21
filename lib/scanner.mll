@@ -1,6 +1,5 @@
 {
 	open Parser
-	open Buffer
 
 	let string_buff = Buffer.create 32
 
@@ -51,7 +50,10 @@ rule token = parse
 | "-="		{ MINUASSIGN }
 | "*="		{ MULTASSIGN }
 | "/="		{ DIVASSIGN }
+| "%="		{ MODASSIGN }
 | '<'      { LT }
+| "<="		{ LTEQ }
+| ">="		{ GTEQ }
 | '>'	   { GT }
 | "&&"     { AND }
 | "||"     { OR }

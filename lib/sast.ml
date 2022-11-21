@@ -10,6 +10,7 @@ and sx =
   | SId of string
   | SBinop of sexpr * binop * sexpr
   | SUnop of unop * sexpr
+  | SCast of sexpr 
   | SAssign of string * sexpr
   | SOpAssign of string * sexpr * assignop
   (* call *)
@@ -54,6 +55,7 @@ let rec string_of_sexpr (t, e) =
       | SId(s) -> s
       | SBinop(e1, o, e2) ->
         string_of_sexpr e1 ^ " " ^ string_of_binop o ^ " " ^ string_of_sexpr e2
+      | SCast(e) -> string_of_sexpr e
       | SUnop(o, e) -> string_of_unop o ^ string_of_sexpr e
       | SAssign(v, e) -> v ^ " = " ^ string_of_sexpr e
       | SOpAssign(v, e, op) -> v ^ " " ^ string_of_assignop op ^ " " ^ string_of_sexpr e
@@ -73,7 +75,7 @@ let rec string_of_sstmt = function
   | SReturn(expr) -> "return " ^ string_of_sexpr expr ^ ";\n"
   | SIf(e, s1, s2) -> "if (" ^ string_of_sexpr e ^ ") {\n" ^
     String.concat "" (List.map string_of_sstmt s1) ^ "} " ^ "else {\n" ^ 
-    String.concat "" (List.map string_of_sstmt s1) ^ "}\n"
+    String.concat "" (List.map string_of_sstmt s2) ^ "}\n"
   | SIfd(e, s1) -> "if (" ^ string_of_sexpr e ^ ") {\n" ^
     String.concat "" (List.map string_of_sstmt s1) ^ "}\n"
   | SWhile(e, s) -> "while (" ^ string_of_sexpr e ^ ") {\n" ^ 

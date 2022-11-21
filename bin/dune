@@ -1,0 +1,4 @@
+(executable
+ (public_name panda)
+ (name main)
+ (libraries panda))
