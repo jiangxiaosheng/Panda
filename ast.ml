@@ -1,10 +1,8 @@
-type binop = Add | Sub | Equal | Neq | Less | Greater | And | Or 
+type binop = Add | Sub | Multiply | Divide | Equal | Neq | Less | Greater | And | Or 
 
 type unop = Not
 
-type typ = Int | Bool | Float | String | Void
-
-type default_value = IntDefault | BoolDefault | FloatDefalt
+type typ = Int | Bool | Float | String | Void | List of typ
 
 type expr =
   | DefaultValue
@@ -18,7 +16,7 @@ type expr =
   (* var x = 3 *)
   | Assign of string * expr
   (* var x: int = 3 *)
-  (* | TypedAssign of typ * string * expr *)
+  | List of expr list
   (* function call *)
   | Call of string * expr list
 
@@ -55,6 +53,8 @@ type program = bind list * func_def list
 let string_of_binop = function
     Add -> "+"
   | Sub -> "-"
+  | Multiply -> "*"
+  | Divide -> "/"
   | Equal -> "=="
   | Neq -> "!="
   | Less -> "<"
@@ -66,12 +66,13 @@ let string_of_binop = function
 let string_of_unop = function
   Not -> "!"
 
-let string_of_typ = function
+let rec string_of_typ = function
     Int -> "int"
   | Bool -> "bool"
   | Float -> "float"
   | String -> "string"
   | Void -> "void"
+  | List t -> "list of " ^ string_of_typ t
 
 let rec string_of_expr = function
   | DefaultValue -> "default"
@@ -88,6 +89,7 @@ let rec string_of_expr = function
   (* | TypedAssign(t, v, e) -> v ^ ":" ^ string_of_typ t ^ " = " ^ string_of_expr e *)
   | Call(f, el) ->
       f ^ "(" ^ String.concat ", " (List.map string_of_expr el) ^ ")"
+  | List(el) -> "[" ^ String.concat ", " (List.map string_of_expr el) ^ "]"
 
 
 let string_of_bind(b) = let (t, id, e) = b in "var " ^ id ^ ": " ^ string_of_typ t ^ " = " ^string_of_expr e ^ ";\n"

@@ -65,37 +65,30 @@ let check(globals, functions) =
   let check_assign lvaluet rvaluet err =
     match lvaluet, rvaluet with
     | Float, Int -> Float
+    | List(Float), List(Int) -> List(Float)
     | _, _ when lvaluet = rvaluet -> lvaluet
     | _, _ -> raise (Failure err)
   in
 
-  let sglobals = 
-  (* check global variables declaration *)
-  let check_globals globals = 
-    (* Make sure no globals duplicate *)
-    let global_t = List.map (fun (t, id, e) -> t, id) globals in check_dup_binds "global" global_t;
-
-    let global_symbols = Hashtbl.create 16 in
-
-    (* disallow function calls in the global scope *)
-    let rec check_global_expr = function
+  let rec check_expr e symbols =
+    match e with
     | DefaultValue -> (Void, SDefaultValue)
     | Literal l -> (Int, SLiteral l)
     | BoolLit l -> (Bool, SBoolLit l)
     | FloatLit l -> (Float, SFloatLit l)
     | StringLit l -> (String, SStringLit l)
-    | Id var -> let t' = type_of_identifier var global_symbols in (t', SId var)
+    | Id var -> let t' = type_of_identifier var symbols in (t', SId var)
     | Assign(var, e) as ex ->
-      let lt = type_of_identifier var global_symbols
-      and (rt, e') = check_global_expr e in
+      let lt = type_of_identifier var symbols
+      and (rt, e') = check_expr e symbols in
       let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^
                 string_of_typ rt ^ " in " ^ string_of_expr ex
       in
       (check_assign lt rt err, SAssign(var, (rt, e')))
 
     | Binop(e1, op, e2) as e ->
-      let (t1, e1') = check_global_expr e1
-      and (t2, e2') = check_global_expr e2 in
+      let (t1, e1') = check_expr e1 symbols
+      and (t2, e2') = check_expr e2 symbols in
       let err = "illegal binary operator " ^
                 string_of_typ t1 ^ " " ^ string_of_binop op ^ " " ^
                 string_of_typ t2 ^ " in " ^ string_of_expr e
@@ -104,9 +97,10 @@ let check(globals, functions) =
       if t1 = t2 then
         (* Determine expression type based on operator and operand types *)
         let t = match op with
-            Add | Sub when t1 = Int -> Int
+            Add | Sub | Multiply | Divide when t1 = Int || t1 = Float -> t1
           | Equal | Neq -> Bool
-          | Less when t1 = Int -> Bool
+          | Less when t1 = Int || t1 = Float -> Bool
+          | Greater when t1 = Int || t1 = Float -> Bool
           | And | Or when t1 = Bool -> Bool
           | _ -> raise (Failure err)
         in
@@ -127,33 +121,67 @@ let check(globals, functions) =
           | _ -> raise (Failure err)
         end
       else raise (Failure err)
+
     | Unop(op, e) -> begin
       match op with 
       | Not ->
-        let (t, e') = check_global_expr e in
+        let (t, e') = check_expr e symbols in
         let err = "illegal expression of type " ^ string_of_typ t ^ ", exepected boolean" in
         if t = Bool then (Bool, SUnop(Not, (Bool, e')))
         else raise (Failure err)
       end
-    | Call(fname, args) as call -> raise (Failure "illegal call in the global scope")
+
+    | Call(fname, args) as call ->
+      let fd = find_func fname in
+      let param_length = List.length fd.formals in
+      if List.length args != param_length then
+        raise (Failure ("expecting " ^ string_of_int param_length ^
+                        " arguments in " ^ string_of_expr call))
+      else let check_call (ft, _) e =
+            let (et, e') = check_expr e symbols in
+            let err = "illegal argument found " ^ string_of_typ et ^
+                      " expected " ^ string_of_typ ft ^ " in " ^ string_of_expr e
+            in (check_assign ft et err, e')
+        in
+        let args' = List.map2 check_call fd.formals args
+        in (fd.rtyp, SCall(fname, args'))
+
+    | List(el) -> let len = List.length el in
+      if len = 0 then (Void, SList([]))
+      else let fst_e = List.hd el in
+      let (fst_t', fst_e') = check_expr fst_e symbols in
+      let type_match e = let (t', se) = check_expr e symbols in
+      if fst_t' = t' then (t', se)
+      else raise (Failure ("type of elements in the list mismatch, " ^ 
+        string_of_typ fst_t' ^ " != " ^ string_of_typ t')) in
+      (List(fst_t'), SList(List.map type_match el))
     in
 
-    let check_global_bind b = let (t, v, e) = b in
-      let (t', e') = check_global_expr e in
-      let _ = add_symbols v t global_symbols in
-      if e = DefaultValue then begin
-      match t with
-      | Int -> t, v, (Int, SLiteral 0)
-      | Bool -> t, v, (Bool, SBoolLit(false))
-      | Float -> t, v, (Float, SFloatLit(0.0))
-      | String -> t, v, (String, SStringLit(""))
-      | _ -> raise (Failure "unrecognized type: ")
-      end
-      else if t = Void then t', v, (t', e')
-      else let err = "type mismatch. " ^ v ^ ": " ^ string_of_typ t ^ ", received " ^ string_of_typ t' in
-        check_assign t t' err, v, (t', e')
-    in
-  List.map check_global_bind globals in
+  let check_bind b symbols = let (t, v, e) = b in
+    let (t', e') = check_expr e symbols in
+    if e = DefaultValue then begin
+    add_symbols v t symbols;
+    match t with
+    | Int -> t, v, (Int, SLiteral(0))
+    | Bool -> t, v, (Bool, SBoolLit(false))
+    | Float -> t, v, (Float, SFloatLit(0.0))
+    | String -> t, v, (String, SStringLit(""))
+    | List tl -> t, v, (List(tl), SList([]))
+    | Void -> raise (Failure "type infer can't be done")
+    end
+    else if t = Void then let _ = add_symbols v t' symbols in t', v, (t', e')
+    else let err = "type mismatch. " ^ v ^ ": " ^ string_of_typ t ^ ", received " ^ string_of_typ t' in
+    let tt = check_assign t t' err in let _ = add_symbols v tt symbols in tt, v, (tt, e')
+  in
+
+  let sglobals = 
+  (* check global variables declaration *)
+  let check_globals globals = 
+    (* Make sure no globals duplicate *)
+    let global_t = List.map (fun (t, id, e) -> t, id) globals in check_dup_binds "global" global_t;
+
+    let global_symbols = Hashtbl.create 16 in
+    List.map (fun g -> check_bind g global_symbols) globals in
   check_globals globals in
 
 
@@ -167,107 +195,11 @@ let check(globals, functions) =
     let _ = List.iter (fun (t, id) -> Hashtbl.add symbols id t) (globals' @ func.formals)
     in
 
-    (* Return a semantically-checked expression, i.e., with a type *)
-    let rec check_expr = function
-      | DefaultValue -> (Void, SDefaultValue)
-      | Literal l -> (Int, SLiteral l)
-      | BoolLit l -> (Bool, SBoolLit l)
-      | FloatLit l -> (Float, SFloatLit l)
-      | StringLit l -> (String, SStringLit l)
-      | Id var -> let t' = type_of_identifier var symbols in (t', SId var)
-      | Assign(var, e) as ex ->
-        (* print_string ("assign " ^ var ^ "\n"); Hashtbl.iter (fun x y -> Printf.printf "%s, " x) symbols; *)
-        let lt = type_of_identifier var symbols
-        and (rt, e') = check_expr e in
-        let err = "illegal assignment " ^ string_of_typ lt ^ " = " ^
-                  string_of_typ rt ^ " in " ^ string_of_expr ex
-        in
-        (check_assign lt rt err, SAssign(var, (lt, e')))
-
-      | Binop(e1, op, e2) as e ->
-        let (t1, e1') = check_expr e1
-        and (t2, e2') = check_expr e2 in
-        let err = "illegal binary operator " ^
-                  string_of_typ t1 ^ " " ^ string_of_binop op ^ " " ^
-                  string_of_typ t2 ^ " in " ^ string_of_expr e
-        in
-        (* All binary operators require operands of the same type*)
-        if t1 = t2 then
-          (* Determine expression type based on operator and operand types *)
-          let t = match op with
-              Add | Sub when t1 = Int -> Int
-            | Equal | Neq -> Bool
-            | Less when t1 = Int || t1 = Float -> Bool
-            | Greater when t1 = Int || t1 = Float -> Bool
-            | And | Or when t1 = Bool -> Bool
-            | _ -> raise (Failure err)
-          in
-          (t, SBinop((t1, e1'), op, (t2, e2')))
-        (* Allows for implicit string casting, e.g. 3+"1"="31" *)
-        else if op = Add && (t1 = String || t2 = String) then begin
-          match t1, t2 with
-            | String, t | t, String -> begin
-              match t with
-              | Int | Float -> (String, SBinop((String, e1'), Add, (String, e2')))
-              | _ -> raise (Failure err)
-            end
-            | _ -> raise (Failure err)
-          end
-        else begin
-          match op with
-          | _ when op != And && op != Or -> let t' = begin
-            match t1, t2 with
-            | Int, Float | Float, Int -> Float
-            | _, _ -> raise (Failure err)
-          end in (t', SBinop((t', e1'), op, (t', e2')))
-          | _ -> raise (Failure err)
-        end
-      | Unop(op, e) -> begin
-        match op with 
-        | Not ->
-          let (t, e') = check_expr e in
-          let err = "illegal expression of type " ^ string_of_typ t ^ ", exepected boolean" in
-          if t = Bool then (Bool, SUnop(Not, (Bool, e')))
-          else raise (Failure err)
-        end
-      | Call(fname, args) as call ->
-        let fd = find_func fname in
-        let param_length = List.length fd.formals in
-        if List.length args != param_length then
-          raise (Failure ("expecting " ^ string_of_int param_length ^
-                          " arguments in " ^ string_of_expr call))
-        else let check_call (ft, _) e =
-              let (et, e') = check_expr e in
-              let err = "illegal argument found " ^ string_of_typ et ^
-                        " expected " ^ string_of_typ ft ^ " in " ^ string_of_expr e
-              in (check_assign ft et err, e')
-          in
-          let args' = List.map2 check_call fd.formals args
-          in (fd.rtyp, SCall(fname, args'))
-    in
-
     let check_bool_expr e =
-      let (t, e') = check_expr e in
+      let (t, e') = check_expr e symbols in
       match t with
       | Bool -> (t, e')
       |  _ -> raise (Failure ("expected Boolean expression in " ^ string_of_expr e))
-    in
-
-    let check_bind b = let (t, v, e) = b in
-      let (t', e') = check_expr e in
-      (* let _ = print_string ("add symbol: " ^ v ^ "\n"); Hashtbl.iter (fun x y -> Printf.printf "%s, " x) symbols in *)
-      if e = DefaultValue then begin
-      add_symbols v t symbols;
-      match t with
-      | Int -> t, v, (Int, SLiteral 0)
-      | Bool -> t, v, (Bool, SBoolLit(false))
-      | Float -> t, v, (Float, SFloatLit(0.0))
-      | String -> t, v, (String, SStringLit(""))
-      | _ -> raise (Failure "unrecognized type: ")
-      end
-      else if t = Void then let _ = add_symbols v t' symbols in t', v, (t', e')
-      else let err = "type mismatch. " ^ v ^ ": " ^ string_of_typ t ^ ", received " ^ string_of_typ t' in
-        let tt = check_assign t t' err in let _ = add_symbols v tt symbols in tt, v, (tt, e')
     in
 
     let rec check_stmt_list = function
@@ -279,18 +211,16 @@ let check(globals, functions) =
       (* A block is correct if each statement is correct and nothing
         follows any Return statement.  Nested blocks are flattened. *)
         Block sl -> SBlock (check_stmt_list sl)
-      | Expr e -> SExpr (check_expr e)
+      | Expr e -> SExpr (check_expr e symbols)
       | If(e, st1, st2) ->
         SIf(check_bool_expr e, check_stmt_list st1, check_stmt_list st2)
       | Ifd(e, st1) ->
         SIfd(check_bool_expr e, check_stmt_list st1)
       | While(e, st) ->
         SWhile(check_bool_expr e, check_stmt_list st)
-        (* TODO: uncomment after  fix binding *)
-      (* | For(e1, e2, e3, st) ->
-        SFor(check_bind e1,check_bool_expr e2, check_expr e3, check_stmt st)   *)
+
       | Return e ->
-        let (t, e') = check_expr e in
+        let (t, e') = check_expr e symbols in
         if t = func.rtyp then SReturn (t, e')
         else raise (
             Failure ("return gives " ^ string_of_typ t ^ " expected " ^
@@ -298,11 +228,12 @@ let check(globals, functions) =
       (* var x: int *)
       (* var x: int = 2 *)
       (* var x = 2 *)
-      | Bind(b) -> let sb = check_bind b in SBind(sb)
+      | Bind(b) -> let sb = check_bind b symbols in SBind(sb)
       | Empty -> SEmpty
-      | For(decl, test, tail, st) -> let sdecl = check_bind decl
+
+      | For(decl, test, tail, st) -> let sdecl = check_bind decl symbols
         in let stest = check_bool_expr test
-        in let stail = check_expr tail
+        in let stail = check_expr tail symbols
         in let sst = check_stmt_list st
         in SFor(sdecl, stest, stail, sst)
 

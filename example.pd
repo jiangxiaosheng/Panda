@@ -1,6 +1,6 @@
 var a: int
 
-var b = 3
+var b = foo(2)
 
 func foo(a: int): int {
 	a = a + 2
@@ -23,8 +23,9 @@ func main() {
 	var x = "123"
 	var v = x + 1
 	v = "hello world"
+	var l: int[]
+	l = [1, 2, 3]
 	
-	//var l = [1, 2, 3]
 	
 	if true || false {
 		print(v)
