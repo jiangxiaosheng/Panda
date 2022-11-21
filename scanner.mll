@@ -31,6 +31,8 @@ rule token = parse
 | "for"		{ FOR }
 | '('      { LPAREN }
 | ')'      { RPAREN }
+| '['		{ LBRACKET }
+| ']'		{ RBRACKET }
 | '{'      { LBRACE }
 | '}'      { RBRACE }
 | ';'      { SEMI }

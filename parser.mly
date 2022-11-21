@@ -2,7 +2,8 @@
 	open Ast
 %}
 
-%token SEMI NEWLINE LPAREN RPAREN LBRACE RBRACE PLUS MINUS MULTIPLY DIVIDE MOD ASSIGN PLUSEQ MINUSEQ STAREQ SLASHEQ
+%token SEMI NEWLINE LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE 
+%token PLUS MINUS MULTIPLY DIVIDE MOD ASSIGN PLUSEQ MINUSEQ STAREQ SLASHEQ
 %token EQ NEQ LT GT AND OR NOT 
 %token IF ELSE WHILE INT BOOL
 /* return, COMMA token */
@@ -65,15 +66,25 @@ typ:
 
 /* fdecl */
 fdecl:
-  typ ID LPAREN formals_opt RPAREN LBRACE stmt_list RBRACE
+  FUNC ID LPAREN formals_opt RPAREN COLON typ LBRACE stmt_list RBRACE
   {
     {
-      rtyp=$1;
+      rtyp=$7;
+      fname=$2;
+      formals=$4;
+      body=$9;
+    }
+  }
+  | FUNC ID LPAREN formals_opt RPAREN LBRACE stmt_list RBRACE
+  {
+	{
+      rtyp=Void;
       fname=$2;
       formals=$4;
       body=$7;
     }
   }
+
 
 /* formals_opt */
 formals_opt:

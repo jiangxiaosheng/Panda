@@ -2,7 +2,7 @@ var a: int
 
 var b = 3
 
-int foo(a: int) {
+func foo(a: int): int {
 	a = a + 2
 	for var i = 0; i < 10; i + 1 {
 		print("" + a)
@@ -19,7 +19,7 @@ int foo(a: int) {
 }
 
 
-int main() {
+func main() {
 	var x = "123"
 	var v = x + 1
 	v = "hello world"
