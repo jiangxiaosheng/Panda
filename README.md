@@ -1,4 +1,6 @@
-## Panda Language
+# Panda Language
+
+## Introduction
 
 Panda is a programming language similar to Go: static scoping, strong and static typing, custom data types, and more. The highlight is that it supports automatic type inference broadly to avoid redundant type declarations and treats functions as first-class primitives (e.g. lambda function) to make programming easier and the code more readable.
 
