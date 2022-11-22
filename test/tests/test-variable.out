@@ -3,5 +3,9 @@ Sementically checked program:
 var x: int(int : 1)
 
 void main() {
+var s1: string(string : hello)
+(int : print((string : s1)))
+var s2: string(string : world)
+(int : print((string : (string : s1) + (string : s2))))
 }
 

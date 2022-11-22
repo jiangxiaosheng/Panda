@@ -105,6 +105,7 @@ let check(globals, functions) =
         (* Determine expression type based on operator and operand types *)
         let t = match op with
             Add | Sub | Multiply | Divide when t1 = Int || t1 = Float -> t1
+          | Add when t1 = String -> String
           | Equal | Neq -> Bool
           | Less | LessEqual | Greater | GreaterEqual when t1 = Int || t1 = Float -> Bool
           (* | Greater when t1 = Int || t1 = Float -> Bool *)
