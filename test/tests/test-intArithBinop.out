@@ -1,0 +1,11 @@
+Sementically checked program: 
+
+
+void main() {
+var i1: int(int : 1)
+var i2: int(int : 2)
+(int : (int : i1) + (int : i2))
+(int : (int : i1) - (int : i2))
+(int : (int : i1) * (int : i2))
+(int : (int : i1) / (int : i2))
+}

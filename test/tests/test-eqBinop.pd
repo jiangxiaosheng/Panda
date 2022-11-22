@@ -1,0 +1,17 @@
+func main() {
+	var x = 1
+    var y = 2
+
+    x == y
+    x != y
+    x > y
+    x < y
+    x >= y
+    x <= y
+
+    var t = true
+    var f = false
+
+    t || f
+    t && f
+}

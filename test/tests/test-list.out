@@ -1,0 +1,17 @@
+Sementically checked program: 
+
+
+void main() {
+var l: list of int(list of int : [])
+(list of int : l = (list of int : [(int : 1), (int : 2), (int : 3)]))
+(list of int : l)
+var sl: list of string(list of string : [])
+(list of string : sl = (list of string : [(string : 1), (string : 2), (string : 3)]))
+(list of string : sl)
+var fl: list of float(list of float : [])
+(list of float : fl = (list of float : [(float : 1.), (float : 2.), (float : 3.)]))
+(list of float : fl)
+var bl: list of bool(list of bool : [])
+(list of bool : bl = (list of bool : [(bool : true), (bool : false)]))
+(list of bool : bl)
+}

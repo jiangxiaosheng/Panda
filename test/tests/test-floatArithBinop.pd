@@ -1,0 +1,9 @@
+func main() {
+	var f1 = 1.0
+    var f2 = 2.0
+
+    f1 + f2
+    f1 - f2
+    f1 * f2
+    f1 / f2
+}

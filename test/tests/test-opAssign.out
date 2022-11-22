@@ -1,0 +1,11 @@
+Sementically checked program: 
+
+
+void main() {
+var i: int(int : 1)
+(int : i += (int : 1))
+(int : i -= (int : 1))
+(int : i *= (int : 1))
+(int : i /= (int : 1))
+(int : i %= (int : 1))
+}

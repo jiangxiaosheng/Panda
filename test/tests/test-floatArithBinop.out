@@ -1,0 +1,11 @@
+Sementically checked program: 
+
+
+void main() {
+var f1: float(float : 1.)
+var f2: float(float : 2.)
+(float : (float : f1) + (float : f2))
+(float : (float : f1) - (float : f2))
+(float : (float : f1) * (float : f2))
+(float : (float : f1) / (float : f2))
+}

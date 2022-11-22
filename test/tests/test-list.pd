@@ -1,0 +1,18 @@
+func main() {
+	var l: int[]
+	l = [1, 2, 3]
+    l
+
+    var sl: string[]
+	sl = ["1", "2", "3"]
+    sl
+
+    var fl: float[]
+	fl = [1.0, 2.0, 3.0]
+    fl
+
+    var bl: boolean[]
+	bl = [true, false]
+    bl
+
+}

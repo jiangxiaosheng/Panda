@@ -1,0 +1,17 @@
+Sementically checked program: 
+
+
+void main() {
+var x: int(int : 1)
+var y: int(int : 2)
+(bool : (int : x) == (int : y))
+(bool : (int : x) != (int : y))
+(bool : (int : x) > (int : y))
+(bool : (int : x) < (int : y))
+(bool : (int : x) >= (int : y))
+(bool : (int : x) <= (int : y))
+var t: bool(bool : true)
+var f: bool(bool : false)
+(bool : (bool : t) || (bool : f))
+(bool : (bool : t) && (bool : f))
+}

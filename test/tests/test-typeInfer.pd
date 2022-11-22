@@ -1,0 +1,11 @@
+var a
+var b
+var c
+var d
+
+func main() {
+	a = 1
+	b = 2.0
+	c =  "hello"
+	d = false
+}

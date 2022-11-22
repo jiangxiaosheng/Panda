@@ -1,0 +1,8 @@
+Sementically checked program: 
+
+
+void main() {
+var a: bool(bool : false)
+(bool : a)
+(bool : !(bool : a))
+}

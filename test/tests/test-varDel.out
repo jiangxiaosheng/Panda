@@ -1,0 +1,13 @@
+Sementically checked program: 
+
+var a: int(int : 0)
+var b: float(float : 0.)
+var c: string(string : )
+var d: bool(bool : false)
+
+void main() {
+(int : a = (int : 1))
+(float : b = (float : 2.))
+(string : c = (string : hello))
+(bool : d = (bool : false))
+}

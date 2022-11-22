@@ -1,0 +1,9 @@
+func main() {
+	var i1 = 1
+    var i2 = 2
+
+    i1 + i2
+    i1 - i2
+    i1 * i2
+    i1 / i2
+}
