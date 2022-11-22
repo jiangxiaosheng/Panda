@@ -45,7 +45,7 @@
 
 ###### Testing test-typeCasting
 ../_build/default/bin/main.exe < tests/test-typeCasting.pd > tests/./test-typeCasting.out
-Fatal error: exception Stdlib.Parsing.Parse_error
+###### SUCCESS
 
 ###### Testing test-typeInfer
 ../_build/default/bin/main.exe < tests/test-typeInfer.pd > tests/./test-typeInfer.out

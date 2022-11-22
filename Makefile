@@ -8,6 +8,6 @@ build:
 
 .PHONY: test
 
-test:
+test: build
 	@echo "run tests..."
 	@cd test; ./testall.sh
