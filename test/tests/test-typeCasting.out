@@ -1,0 +1,9 @@
+
+
+Sementically checked program: 
+
+
+void main() {
+var x: float(float : 3)
+}
+

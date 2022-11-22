@@ -65,7 +65,6 @@ let check(globals, functions) =
   let check_assign lvaluet rvaluet err =
     match lvaluet, rvaluet with
     | Float, Int -> Float
-    | List(Float), List(Int) -> List(Float)
     | _, _ when lvaluet = rvaluet -> lvaluet
     | _, _ -> raise (Failure err)
   in
@@ -129,7 +128,7 @@ let check(globals, functions) =
       let err = "illegal casting from type: " ^ string_of_typ t' ^
         " to type: " ^ string_of_typ t in
       begin match t with
-      | Int -> raise (Failure "cannot cast to a list type")
+      | List(_) -> raise (Failure "cannot cast to a list type")
       | _ -> (check_assign t t' err, e')
       end
 
