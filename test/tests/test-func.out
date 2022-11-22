@@ -1,0 +1,17 @@
+
+
+Sementically checked program: 
+
+
+void foo(a) {
+for (var i: int(int : 0)
+; (bool : (int : i) < (int : a)); (int : (int : i) + (int : 1))) {
+(int : print((string : (string : ) + (string : a))))
+(int : print((string : )))
+}
+}
+
+void main() {
+(void : foo((int : 10)))
+}
+

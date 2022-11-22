@@ -11,6 +11,14 @@
 ../_build/default/bin/main.exe < tests/test-for.pd > tests/./test-for.out
 ###### SUCCESS
 
+###### Testing test-func
+../_build/default/bin/main.exe < tests/test-func.pd > tests/./test-func.out
+###### SUCCESS
+
+###### Testing test-ifelse
+../_build/default/bin/main.exe < tests/test-ifelse.pd > tests/./test-ifelse.out
+###### SUCCESS
+
 ###### Testing test-intArithBinop
 ../_build/default/bin/main.exe < tests/test-intArithBinop.pd > tests/./test-intArithBinop.out
 ###### SUCCESS
@@ -23,9 +31,17 @@
 ../_build/default/bin/main.exe < tests/test-opAssign.pd > tests/./test-opAssign.out
 ###### SUCCESS
 
+###### Testing test-print
+../_build/default/bin/main.exe < tests/test-print.pd > tests/./test-print.out
+###### SUCCESS
+
 ###### Testing test-typeCasting
 ../_build/default/bin/main.exe < tests/test-typeCasting.pd > tests/./test-typeCasting.out
 Fatal error: exception Stdlib.Parsing.Parse_error
+
+###### Testing test-typeInfer
+../_build/default/bin/main.exe < tests/test-typeInfer.pd > tests/./test-typeInfer.out
+###### SUCCESS
 
 ###### Testing test-unop
 ../_build/default/bin/main.exe < tests/test-unop.pd > tests/./test-unop.out

@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 
 globallog=testall.log
 rm -f $globallog

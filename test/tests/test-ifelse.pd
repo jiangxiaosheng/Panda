@@ -1,0 +1,14 @@
+func main() {
+	var i = 0
+    var p = true
+
+    if i > 0 {
+        i += 3
+
+        if i == 0 {
+            i += 2
+        }
+    }else{
+        i += 1
+    }
+}

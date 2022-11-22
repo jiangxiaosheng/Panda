@@ -1,0 +1,12 @@
+
+
+Sementically checked program: 
+
+
+void main() {
+var a: int(int : 1)
+var b: float(float : 2.)
+var c: string(string : hello)
+var d: bool(bool : false)
+}
+

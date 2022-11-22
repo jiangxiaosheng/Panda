@@ -1,0 +1,11 @@
+func foo(a: int): void {
+	for var i = 0; i < a; i + 1 {
+		print("" + a)
+		print("")
+	}
+
+}
+
+func main() {
+    foo(10)
+}

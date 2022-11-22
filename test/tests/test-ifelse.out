@@ -1,0 +1,18 @@
+
+
+Sementically checked program: 
+
+
+void main() {
+var i: int(int : 0)
+var p: bool(bool : true)
+if ((bool : (int : i) > (int : 0))) {
+(int : i += (int : 3))
+if ((bool : (int : i) == (int : 0))) {
+(int : i += (int : 2))
+}
+} else {
+(int : i += (int : 1))
+}
+}
+
