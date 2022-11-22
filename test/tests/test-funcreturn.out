@@ -1,0 +1,11 @@
+Sementically checked program: 
+
+
+int foo(a) {
+return (int : a);
+}
+
+void main() {
+(int : foo((int : 10)))
+}
+

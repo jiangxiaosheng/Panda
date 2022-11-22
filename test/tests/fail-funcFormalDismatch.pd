@@ -1,0 +1,7 @@
+func foo(a: int, b: int): int {
+    return a
+}
+
+func main() {
+    foo(10)
+}

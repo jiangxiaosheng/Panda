@@ -1,0 +1,14 @@
+func foo(a: int, b: float, c: string, d: boolean): void {
+
+	for var i = 0; i < a; i + 1 {
+		print("" + b)
+		if d {
+			print(c)
+		}
+	}
+
+}
+
+func main() {
+    foo(10, 10.1, "hello", true)
+}

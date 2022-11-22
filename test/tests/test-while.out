@@ -1,0 +1,12 @@
+Sementically checked program: 
+
+
+void main() {
+var sum: int(int : 0)
+var i: int(int : 0)
+while ((bool : (int : i) < (int : 10))) {
+(int : sum += (int : i))
+(int : i += (int : 1))
+}
+}
+

@@ -139,6 +139,6 @@ let string_of_fdecl fdecl =
   "}\n"
 
 let string_of_program (vars, funcs) =
-  "\n\nParsed program: \n\n" ^
+  "Parsed program: \n\n" ^
   String.concat "" (List.map string_of_bind vars) ^ "\n" ^
   String.concat "\n" (List.map string_of_fdecl funcs)

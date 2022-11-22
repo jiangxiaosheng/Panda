@@ -15,6 +15,14 @@
 ../_build/default/bin/main.exe < tests/test-func.pd > tests/./test-func.out
 ###### SUCCESS
 
+###### Testing test-func2
+../_build/default/bin/main.exe < tests/test-func2.pd > tests/./test-func2.out
+###### SUCCESS
+
+###### Testing test-funcreturn
+../_build/default/bin/main.exe < tests/test-funcreturn.pd > tests/./test-funcreturn.out
+###### SUCCESS
+
 ###### Testing test-ifelse
 ../_build/default/bin/main.exe < tests/test-ifelse.pd > tests/./test-ifelse.out
 ###### SUCCESS
@@ -55,10 +63,30 @@ Fatal error: exception Stdlib.Parsing.Parse_error
 ../_build/default/bin/main.exe < tests/test-variable.pd > tests/./test-variable.out
 ###### SUCCESS
 
+###### Testing test-while
+../_build/default/bin/main.exe < tests/test-while.pd > tests/./test-while.out
+###### SUCCESS
+
+###### Testing fail-funcFormalDismatch
+../_build/default/bin/main.exe < tests/fail-funcFormalDismatch.pd 2> tests/./fail-funcFormalDismatch.err >> testall.log
+###### SUCCESS
+
+###### Testing fail-funcFormalTypes
+../_build/default/bin/main.exe < tests/fail-funcFormalTypes.pd 2> tests/./fail-funcFormalTypes.err >> testall.log
+###### SUCCESS
+
+###### Testing fail-parser
+../_build/default/bin/main.exe < tests/fail-parser.pd 2> tests/./fail-parser.err >> testall.log
+###### SUCCESS
+
+###### Testing fail-returnType
+../_build/default/bin/main.exe < tests/fail-returnType.pd 2> tests/./fail-returnType.err >> testall.log
+###### SUCCESS
+
 ###### Testing fail-typeInfer
 ../_build/default/bin/main.exe < tests/fail-typeInfer.pd 2> tests/./fail-typeInfer.err >> testall.log
 ###### SUCCESS
 
-###### Testing fail-variable
-../_build/default/bin/main.exe < tests/fail-variable.pd 2> tests/./fail-variable.err >> testall.log
+###### Testing fail-undelVar
+../_build/default/bin/main.exe < tests/fail-undelVar.pd 2> tests/./fail-undelVar.err >> testall.log
 ###### SUCCESS

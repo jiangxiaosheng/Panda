@@ -95,6 +95,6 @@ let string_of_sfdecl fdecl =
   "}\n"
 
 let string_of_sprogram (vars, funcs) =
-  "\n\nSementically checked program: \n\n" ^
+  "Sementically checked program: \n\n" ^
   String.concat "" (List.map string_of_sbind vars) ^ "\n" ^
   String.concat "\n" (List.map string_of_sfdecl funcs)
