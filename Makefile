@@ -5,7 +5,6 @@ SHELL:=/bin/bash
 build:
 	@dune build
 	@echo "build ok"
-	@cp _build/default/bin/main.exe test
 
 .PHONY: test
 

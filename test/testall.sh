@@ -6,7 +6,7 @@ keep=1
 error=0
 globalerror=0
 
-PANDA="./main.exe"
+PANDA="../_build/default/bin/main.exe"
 
 SignalError() {
     if [ $error -eq 0 ] ; then
