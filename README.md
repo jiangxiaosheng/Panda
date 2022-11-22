@@ -4,6 +4,21 @@
 
 Panda is a programming language similar to Go: static scoping, strong and static typing, custom data types, and more. The highlight is that it supports automatic type inference broadly to avoid redundant type declarations and treats functions as first-class primitives (e.g. lambda function) to make programming easier and the code more readable.
 
+## Build and test
+For build only, run
+```
+make build
+```
+For test only, run
+```
+make test
+```
+To run them both, just run 
+```
+make
+```
+If there is any issue when running the test due to the permission error (as we developed it on different OS), please give the execution permission to the `testall.sh` script under `test` manually.
+
 ## Features in the HelloWorld demo
 
 - data types
