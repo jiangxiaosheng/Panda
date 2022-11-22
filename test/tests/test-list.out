@@ -1,3 +1,5 @@
+
+
 Sementically checked program: 
 
 
@@ -15,3 +17,4 @@ var bl: list of bool(list of bool : [])
 (list of bool : bl = (list of bool : [(bool : true), (bool : false)]))
 (list of bool : bl)
 }
+

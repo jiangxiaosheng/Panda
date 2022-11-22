@@ -1,0 +1,9 @@
+
+
+Sementically checked program: 
+
+var x: int(int : 1)
+
+void main() {
+}
+

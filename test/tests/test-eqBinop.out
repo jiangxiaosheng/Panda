@@ -1,3 +1,5 @@
+
+
 Sementically checked program: 
 
 
@@ -15,3 +17,4 @@ var f: bool(bool : false)
 (bool : (bool : t) || (bool : f))
 (bool : (bool : t) && (bool : f))
 }
+

@@ -1,0 +1,44 @@
+
+###### Testing test-eqBinop
+./main.exe < tests/test-eqBinop.pd > tests/./test-eqBinop.out
+###### SUCCESS
+
+###### Testing test-floatArithBinop
+./main.exe < tests/test-floatArithBinop.pd > tests/./test-floatArithBinop.out
+###### SUCCESS
+
+###### Testing test-for
+./main.exe < tests/test-for.pd > tests/./test-for.out
+###### SUCCESS
+
+###### Testing test-intArithBinop
+./main.exe < tests/test-intArithBinop.pd > tests/./test-intArithBinop.out
+###### SUCCESS
+
+###### Testing test-list
+./main.exe < tests/test-list.pd > tests/./test-list.out
+###### SUCCESS
+
+###### Testing test-opAssign
+./main.exe < tests/test-opAssign.pd > tests/./test-opAssign.out
+###### SUCCESS
+
+###### Testing test-unop
+./main.exe < tests/test-unop.pd > tests/./test-unop.out
+###### SUCCESS
+
+###### Testing test-varDel
+./main.exe < tests/test-varDel.pd > tests/./test-varDel.out
+###### SUCCESS
+
+###### Testing test-variable
+./main.exe < tests/test-variable.pd > tests/./test-variable.out
+###### SUCCESS
+
+###### Testing fail-typeInfer
+./main.exe < tests/fail-typeInfer.pd 2> tests/./fail-typeInfer.err >> testall.log
+###### SUCCESS
+
+###### Testing fail-variable
+./main.exe < tests/fail-variable.pd 2> tests/./fail-variable.err >> testall.log
+###### SUCCESS

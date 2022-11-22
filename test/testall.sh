@@ -2,16 +2,11 @@
 
 globallog=testall.log
 rm -f $globallog
-keep=0
+keep=1
 error=0
 globalerror=0
 
-Usage() {
-    echo "Usage: testall.sh [options] [.pd files]"
-    echo "-k    Keep intermediate files"
-    echo "-h    Print this help"
-    exit 1
-}
+PANDA="./main.exe"
 
 SignalError() {
     if [ $error -eq 0 ] ; then
@@ -21,14 +16,14 @@ SignalError() {
     echo "  $1"
 }
 
-Compare() {
-    generatedfiles="$generatedfiles $3"
-    echo diff -b $1 $2 ">" $3 1>&2
-    diff -b "$1" "$2" > "$3" 2>&1 || {
-	SignalError "$1 differs"
-	echo "FAILED $1 differs from $2" 1>&2
-    }
-}
+# Compare() {
+#     generatedfiles="$generatedfiles $3"
+#     echo diff -b $1 $2 ">" $3 1>&2
+#     diff -b "$1" "$2" > "$3" 2>&1 || {
+# 	SignalError "$1 differs"
+# 	echo "FAILED $1 differs from $2" 1>&2
+#     }
+# }
 
 Run() {
     echo $* 1>&2
@@ -59,21 +54,9 @@ Check() {
     echo 1>&2
     echo "###### Testing $basename" 1>&2
 
-    generatedfiles=""
-
-    generatedfiles="$generatedfiles ${basename}.ll ${basename}.s ${basename}.exe ${basename}.out" &&
-    Run "$MICROC" "$1" ">" "${basename}.ll" &&
-    Run "$LLC" "-relocation-model=pic" "${basename}.ll" ">" "${basename}.s" &&
-    Run "$CC" "-o" "${basename}.exe" "${basename}.s" "$PRINTBIG" &&
-    Run "./${basename}.exe" > "${basename}.out" &&
-    Compare ${basename}.out ${reffile}.out ${basename}.diff
-
-    # Report the status and clean up the generated files
+    Run "$PANDA" "<" $1 ">" "$basedir/${basename}.out" &&
 
     if [ $error -eq 0 ] ; then
-	if [ $keep -eq 0 ] ; then
-	    rm -f $generatedfiles
-	fi
 	echo "OK"
 	echo "###### SUCCESS" 1>&2
     else
@@ -94,18 +77,9 @@ CheckFail() {
     echo 1>&2
     echo "###### Testing $basename" 1>&2
 
-    generatedfiles=""
-
-    generatedfiles="$generatedfiles ${basename}.err ${basename}.diff" &&
-    RunFail "$MICROC" "<" $1 "2>" "${basename}.err" ">>" $globallog &&
-    Compare ${basename}.err ${reffile}.err ${basename}.diff
-
-    # Report the status and clean up the generated files
+    RunFail "$PANDA" "<" $1 "2>" "$basedir/${basename}.err" ">>" $globallog &&
 
     if [ $error -eq 0 ] ; then
-	if [ $keep -eq 0 ] ; then
-	    rm -f $generatedfiles
-	fi
 	echo "OK"
 	echo "###### SUCCESS" 1>&2
     else
@@ -114,16 +88,6 @@ CheckFail() {
     fi
 }
 
-while getopts kdpsh c; do
-    case $c in
-	k) # Keep intermediate files
-	    keep=1
-	    ;;
-	h) # Help
-	    Usage
-	    ;;
-    esac
-done
 
 
 if [ $# -ge 1 ]
