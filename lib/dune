@@ -1,5 +1,7 @@
 (library
- (name panda))
+ (name panda)
+ (libraries llvm)
+ (flags (:standard -w +a-4)))
 
 (ocamllex scanner)
 
