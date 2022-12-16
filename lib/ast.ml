@@ -1,7 +1,7 @@
 type binop = Add | Sub | Multiply | Divide | Equal | Neq 
   | Less | LessEqual | Greater | GreaterEqual | And | Or 
 
-type unop = Not
+type unop = Not | Neg
 
 type assignop = AddEq | SubEq | MultEq | DivEq | ModEq
 
@@ -73,6 +73,7 @@ let string_of_binop = function
 
 let string_of_unop = function
   Not -> "!"
+  | Neg -> "-"
 
 let string_of_assignop = function
   AddEq -> "+="
