@@ -4,34 +4,35 @@ open Sast
 
 module StringMap = Map.Make(String)
 
-let translate (globals, functions) =
+let translate (_, functions) =
   let context    = L.global_context () in
   let the_module = L.create_module context "Panda" in
 
   (* Get types from the context *)
   let i32_t      = L.i32_type    context
-  and i8_t       = L.i8_type     context
+  (* and i8_t       = L.i8_type     context *)
   and i1_t       = L.i1_type     context
   and float_t    = L.double_type context
   and void_t     = L.void_type   context in
 
-  let string_t   = L.pointer_type i8_t in
+  (* let string_t   = L.pointer_type i8_t in *)
 
   let ltype_of_typ = function
       A.Int   -> i32_t
     | A.Bool  -> i1_t
     | A.Float -> float_t
     | A.Void  -> void_t
-    (* | A.String ->  *)
+    (* TODO *)
+    | _ -> i32_t  
   in
 
-  let global_vars : L.llvalue StringMap.t =
+  (* let global_vars =
     let global_var m (t, n, _) = 
       let init = match t with
           A.Float -> L.const_float (ltype_of_typ t) 0.0
         | _ -> L.const_int (ltype_of_typ t) 0
       in StringMap.add n (L.define_global n init the_module) m in
-    List.fold_left global_var StringMap.empty globals in
+    List.fold_left global_var StringMap.empty globals in *)
 
 
   let function_decls : (L.llvalue * sfunc_def) StringMap.t =
@@ -57,18 +58,20 @@ let translate (globals, functions) =
 
     (* local_vars initially only includes the formals
        local variables will be added later when we deal with statements *)
-    let local_vars =
-      let add_formal m (t, n) p = 
-        L.set_value_name n p;
-	      let local = L.build_alloca (ltype_of_typ t) n builder in
-          ignore (L.build_store p local builder);
-	      StringMap.add n local m 
+    let local_vars = Hashtbl.create 16 in
+
+    let add_formal (t, n) p = 
+      L.set_value_name n p;
+      let local = L.build_alloca (ltype_of_typ t) n builder in
+        ignore (L.build_store p local builder);
+        ignore(Hashtbl.add local_vars n local); in
     
-      in List.fold_left2 add_formal StringMap.empty fdecl.sformals
-            (Array.to_list (L.params the_function)) in
+     ignore(List.iter2 add_formal fdecl.sformals
+            (Array.to_list (L.params the_function)));
     
-    let lookup n = try StringMap.find n local_vars
-      with Not_found -> StringMap.find n global_vars
+    let lookup n = try Hashtbl.find local_vars n
+      with Not_found -> raise (Failure "todo")
+        (* Hashtbl.find global_vars n *)
     in
 
     let rec build_expr builder ((_, e) : sexpr) = match e with
@@ -127,7 +130,7 @@ let translate (globals, functions) =
           let tmp = L.build_alloca (ltype_of_typ tp) "tmp" builder in
           ignore(L.build_store e' tmp builder); e'
 
-      | SOpAssign(id, e, op) -> let e' = build_expr builder e in
+      | SOpAssign(id, ((A.Float,_ ) as e), op) -> let e' = build_expr builder e in
         let id_v = L.build_load (lookup id) id builder in
         let res =
         (match op with
@@ -135,7 +138,18 @@ let translate (globals, functions) =
         | A.SubEq -> L.build_fsub
         | A.MultEq -> L.build_fmul
         | A.DivEq -> L.build_fdiv
-        | _ -> raise (Failure "syntax error: not allowed operator on float operands")) 
+        | _ -> raise (Failure "syntax error: not allowed operator on int operands")) 
+        id_v e' "tmp" builder in ignore(L.build_store res (lookup id) builder); res
+
+      | SOpAssign(id, e, op) -> let e' = build_expr builder e in
+        let id_v = L.build_load (lookup id) id builder in
+        let res =
+        (match op with
+        | A.AddEq -> L.build_add
+        | A.SubEq -> L.build_sub
+        | A.MultEq -> L.build_mul
+        | A.DivEq -> L.build_sdiv
+        | _ -> raise (Failure "syntax error: not allowed operator on int operands")) 
         id_v e' "tmp" builder in ignore(L.build_store res (lookup id) builder); res
 
       | SCall(f, args) -> let (fdef, fdecl) = StringMap.find f function_decls in
@@ -143,10 +157,12 @@ let translate (globals, functions) =
           let result = (match fdecl.srtyp with 
                                A.Void -> ""
                              | _ -> f ^ "_result") in
-                L.build_call fdef (Array.of_list llargs) result builder
-           in
-           let add_terminal builder instr = begin
-            match L.block_terminator (L.insertion_block builder) with
+                L.build_call fdef (Array.of_list llargs) result builder 
+      (* TODO *)
+      | _ -> raise (Failure "expr not implemented") in
+      
+      let add_terminal builder instr = begin
+        match L.block_terminator (L.insertion_block builder) with
         Some _ -> ()
         | None -> ignore (instr builder) 
            end in
@@ -155,41 +171,83 @@ let translate (globals, functions) =
     | SBlock sl -> List.fold_left build_stmt builder sl
     | SEmpty -> builder
     | SExpr e -> ignore(build_expr builder e); builder 
+    | SBind sb -> let (tp, id, se) = sb in 
+        let se' = build_expr builder se in
+        let local = L.build_alloca (ltype_of_typ tp) id builder in
+        ignore(Hashtbl.add local_vars id local);
+        ignore(L.build_store se' (lookup id) builder); builder 
     | SReturn e -> ignore(match fdecl.srtyp with
       (* Special "return nothing" instr *)
       A.Void -> L.build_ret_void builder 
       (* Build return statement *)
     | _ -> L.build_ret (build_expr builder e) builder);
   builder
-  | SIf (predicate, then_stmt, else_stmt) ->
-  let bool_val = build_expr builder predicate in
-  let then_bb = L.append_block context "then" the_function in
-  let else_bb = L.append_block context "else" the_function in
-  let end_bb = L.append_block context "if_end" the_function in
-    ignore(L.build_cond_br bool_val then_bb else_bb builder);
-    ignore(build_stmt (L.builder_at_end context th))
+  | SIf (predicate, then_stmt_list, else_stmt_list) ->
+    let bool_val = build_expr builder predicate in
+    let then_bb = L.append_block context "then" the_function in
+    let else_bb = L.append_block context "else" the_function in
+    let end_bb = L.append_block context "if_end" the_function in
+      ignore(L.build_cond_br bool_val then_bb else_bb builder);
+      ignore(List.iter (fun stmt -> ignore(build_stmt (L.builder_at_end context then_bb) stmt)) then_stmt_list);
+      ignore(List.iter (fun stmt -> ignore(build_stmt (L.builder_at_end context else_bb) stmt)) else_stmt_list);
 
-  L.builder_at_end context merge_bb
+    let build_br_end = L.build_br end_bb in
 
+    add_terminal (L.builder_at_end context then_bb) build_br_end;
+    add_terminal (L.builder_at_end context else_bb) build_br_end;
+    L.builder_at_end context end_bb
+
+  | SIfd (predicate, then_stmt_list) ->
+    let bool_val = build_expr builder predicate in
+    let then_bb = L.append_block context "then" the_function in
+    let end_bb = L.append_block context "if_end" the_function in
+      ignore(L.build_cond_br bool_val then_bb end_bb builder);
+      ignore(List.iter (fun stmt -> ignore(build_stmt (L.builder_at_end context then_bb) stmt)) then_stmt_list);
+
+    let build_br_end = L.build_br end_bb in
+
+    add_terminal (L.builder_at_end context then_bb) build_br_end;
+    L.builder_at_end context end_bb
+
+    (* 
+      WHILE:
+      predicate.code ||
+      con_br(condition  jump) predicate.addr  BODY END
+
+      BODY:
+      ... 
+      body.code ||
+      jmp WHILE
+
+      END:
+      ....
+    
+    *)
   | SWhile (predicate, body) ->
-  let pred_bb = L.append_block context "while" the_function in
-  ignore(L.build_br pred_bb builder);
+      let while_bb = L.append_block context "while" the_function in
+      let body_bb = L.append_block context "while_body" the_function in
+      let end_bb = L.append_block context "while_end" the_function in
 
-  let body_bb = L.append_block context "while_body" the_function in
-  add_terminal (build_stmt (L.builder_at_end context body_bb) body)
-  (L.build_br pred_bb);
+      let build_br_while = L.build_br while_bb in
+        ignore(build_br_while builder);
+      
+      let bool_val = build_expr (L.builder_at_end context while_bb) predicate in
+        ignore(L.build_cond_br bool_val body_bb end_bb (L.builder_at_end context while_bb));
+        ignore(List.iter (fun stmt ->
+          match stmt with
+          | SBreak -> ignore(L.build_br end_bb (L.builder_at_end context body_bb));
+          | SContinue -> ignore(L.build_br while_bb (L.builder_at_end context body_bb));
+          | _ -> ignore(build_stmt (L.builder_at_end context body_bb) stmt);) body);
 
-  let pred_builder = L.builder_at_end context pred_bb in
-  let bool_val = build_expr pred_builder predicate in
-
-  let merge_bb = L.append_block context "merge" the_function in
-  ignore(L.build_cond_br bool_val body_bb merge_bb pred_builder);
-  L.builder_at_end context merge_bb
+      add_terminal (L.builder_at_end context body_bb) build_br_while;
+        L.builder_at_end context end_bb
 
   (* Implement for loops as while loops *)
   | SFor (e1, e2, e3, body) -> build_stmt builder
-  ( SBlock [SExpr e1 ; SWhile (e2, SBlock [body ; SExpr e3]) ] )
-  in
+    ( SBlock [SBind e1; SWhile (e2, List.append body [SExpr e3]) ] )
+
+  | SBreak -> raise (Failure "syntax error: break not appear in a loop")
+  | SContinue -> raise (Failure "syntax error: continue not appear in a loop") in
 
   (* Build the code for each statement in the function *)
   let builder = build_stmt builder (SBlock fdecl.sbody) in
@@ -200,6 +258,7 @@ let translate (globals, functions) =
   | A.Float -> L.build_ret (L.const_float float_t 0.0)
   | t -> L.build_ret (L.const_int (ltype_of_typ t) 0))
   in
+
 
   List.iter build_function_body functions;
   the_module

@@ -140,6 +140,11 @@ let check(globals, functions) =
         let err = "illegal expression of type " ^ string_of_typ t ^ ", exepected boolean" in
         if t = Bool then (Bool, SUnop(Not, (Bool, e')))
         else raise (Failure err)
+      | Neg ->
+        let (t, e') = check_expr e symbols in
+        let err = "illegal expression of type " ^ string_of_typ t ^ ", exepected boolean" in
+        if t = Int || t = Float then (t, SUnop(Neg, (t, e')))
+        else raise (Failure err)
       end
 
     | Call(fname, args) as call ->

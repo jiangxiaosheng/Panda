@@ -31,6 +31,7 @@ type sstmt =
   (* return *)
   | SReturn of sexpr
   | SBind of sbind
+  (* first arg may not be a sbind, it could be an assign too *)
   | SFor of sbind * sexpr * sexpr * sstmt list
 
 
@@ -42,7 +43,6 @@ type sfunc_def = {
 }
 
 type sprogram = sbind list * sfunc_def list
-
 
 let rec string_of_sexpr (t, e) =
   "(" ^ string_of_typ t ^ " : " ^ (match e with
