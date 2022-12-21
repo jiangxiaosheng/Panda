@@ -74,7 +74,7 @@ typ:
   | VOID  { Void }
 //   var x: int[3]
   | typ LBRACKET LITERAL RBRACKET { List($1, $3) }
-  | FUNC LPAREN lambda_formals_opt RPAREN COLON typ { Func($3, $6) }
+  | FUNC LPAREN lambda_formals_opt RPAREN typ { Func($3, $5) }
   | FUNC LPAREN lambda_formals_opt RPAREN { Func($3, Void) }
 
 /* fdecl */

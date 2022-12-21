@@ -36,11 +36,12 @@ let check (globals, functions) =
   (* Collect all function names into one symbol table *)
   let function_decls = List.fold_left add_func built_in_decls functions in
   (* Return a function from our symbol table *)
-  let find_func s =
+  let find_func s local_funcs =
     try StringMap.find s function_decls
-    with Not_found -> raise (Failure ("unrecognized function " ^ s))
+  with Not_found -> try Hashtbl.find local_funcs s 
+  with Not_found -> raise (Failure ("unrecognized function " ^ s))
   in
-  let _ = find_func "main" in
+  let _ = find_func "main" (Hashtbl.create 0) in
   (* Ensure "main" is defined *)
 
   (* Return a variable type from our local symbol table *)
@@ -79,7 +80,7 @@ let check (globals, functions) =
     | Func(_, _) -> SEmptyFunction
   in
 
-  let rec check_expr e symbols =
+  let rec check_expr e symbols local_funcs =
     match e with
     | DefaultValue -> (Void, SDefaultValue)
     | Literal l -> (Int, SLiteral l)
@@ -91,7 +92,7 @@ let check (globals, functions) =
         (t', SId var)
     | Assign (var, e) as ex ->
         let lt = type_of_identifier var symbols
-        and rt, e' = check_expr e symbols in
+        and rt, e' = check_expr e symbols local_funcs in
         let err =
           "illegal assignment " ^ string_of_typ lt ^ " = " ^ string_of_typ rt
           ^ " in " ^ string_of_expr ex
@@ -99,15 +100,15 @@ let check (globals, functions) =
         (check_assign lt rt err, SAssign (var, (rt, e')))
     | OpAssign (var, e, op) as ex ->
         let lt = type_of_identifier var symbols
-        and rt, e' = check_expr e symbols in
+        and rt, e' = check_expr e symbols local_funcs in
         let err =
           "illegal assignment " ^ string_of_typ lt ^ " = " ^ string_of_typ rt
           ^ " in " ^ string_of_expr ex
         in
         (check_assign lt rt err, SOpAssign (var, (lt, e'), op))
     | Binop (e1, op, e2) as e ->
-        let t1, e1' = check_expr e1 symbols
-        and t2, e2' = check_expr e2 symbols in
+        let t1, e1' = check_expr e1 symbols local_funcs
+        and t2, e2' = check_expr e2 symbols local_funcs in
         let err =
           "illegal binary operator " ^ string_of_typ t1 ^ " "
           ^ string_of_binop op ^ " " ^ string_of_typ t2 ^ " in "
@@ -141,7 +142,7 @@ let check (globals, functions) =
           | _ -> raise (Failure err)
         else raise (Failure err)
     | Cast (t, e) -> (
-        let t', e' = check_expr e symbols in
+        let t', e' = check_expr e symbols local_funcs in
         let err =
           "illegal casting from type: " ^ string_of_typ t' ^ " to type: "
           ^ string_of_typ t
@@ -152,7 +153,7 @@ let check (globals, functions) =
     | Unop (op, e) -> (
       match op with
       | Not ->
-          let t, e' = check_expr e symbols in
+          let t, e' = check_expr e symbols local_funcs in
           let err =
             "illegal expression of type " ^ string_of_typ t
             ^ ", exepected boolean"
@@ -160,7 +161,7 @@ let check (globals, functions) =
           if t = Bool then (Bool, SUnop (Not, (Bool, e')))
           else raise (Failure err)
       | Neg ->
-          let t, e' = check_expr e symbols in
+          let t, e' = check_expr e symbols local_funcs in
           let err =
             "illegal expression of type " ^ string_of_typ t
             ^ ", exepected boolean"
@@ -168,7 +169,7 @@ let check (globals, functions) =
           if t = Int || t = Float then (t, SUnop (Neg, (t, e')))
           else raise (Failure err) )
     | Call (fname, args) as call ->
-        let fd = find_func fname in
+        let fd = find_func fname local_funcs in
         let param_length = List.length fd.formals in
         if List.length args != param_length then
           raise
@@ -178,7 +179,7 @@ let check (globals, functions) =
                ^ " arguments in " ^ string_of_expr call ) )
         else
           let check_call (ft, _) e =
-            let et, e' = check_expr e symbols in
+            let et, e' = check_expr e symbols local_funcs in
             let err =
               "illegal argument found " ^ string_of_typ et ^ " expected "
               ^ string_of_typ ft ^ " in " ^ string_of_expr e
@@ -192,9 +193,9 @@ let check (globals, functions) =
         if len = 0 then (Void, SList [])
         else
           let fst_e = List.hd el in
-          let fst_t', _' = check_expr fst_e symbols in
+          let fst_t', _' = check_expr fst_e symbols local_funcs in
           let type_match e =
-            let t', se = check_expr e symbols in
+            let t', se = check_expr e symbols local_funcs in
             if fst_t' = t' then (t', se)
             else
               raise
@@ -204,7 +205,7 @@ let check (globals, functions) =
           in
           (List (fst_t', len), SList (List.map type_match el))
     | ListAccess (ln, ie) -> (
-        let t, se = check_expr ie symbols in
+        let t, se = check_expr ie symbols local_funcs in
         if t != Int then raise (Failure "list index must be an integer")
         else
           match se with
@@ -217,23 +218,29 @@ let check (globals, functions) =
                   else (t, SListAccess (ln, (Int, se)))
               | _ -> raise (Failure (ln ^ " is not a list type")) )
           | _ -> raise (Failure "") )
-    | _ -> raise (Failure "not implemented yet")
-    in
+    | Lambda(lb_def) -> let sfunc = check_func {fname="lambda"; rtyp=lb_def.rtyp; formals=lb_def.formals; body=lb_def.body} in
+        let arg_typs = List.map (fun (tp, _) -> tp) lb_def.formals in
+        Func(arg_typs, lb_def.rtyp), SLambda({rtyp=sfunc.srtyp; formals=sfunc.sformals; body=sfunc.sbody})
+    | LambdaApply(lb_def, el) -> let sfunc = check_func {fname="lambda"; rtyp=lb_def.rtyp; formals=lb_def.formals; body=lb_def.body} in
+        let arg_typs = List.map (fun (tp, _) -> tp) lb_def.formals in
+        let sel = List.map (fun e -> (check_expr e symbols local_funcs)) el in
+        Func(arg_typs, lb_def.rtyp), SLambdaApply({rtyp=sfunc.srtyp; formals=sfunc.sformals; body=sfunc.sbody}, sel)
+    | EmptyFunction -> Func([], Void), SEmptyFunction
 
-    let check_bind b symbols =
+  and check_bind b symbols local_funcs =
     let t, v, e = b in
-    let t', e' = check_expr e symbols in
+    let t', e' = check_expr e symbols local_funcs in
     if e = DefaultValue then (
-      add_symbols v t symbols ;
       let default_v = match_default t in
       match t with
-      | Int -> (t, v, (Int, default_v))
-      | Bool -> (t, v, (Bool, default_v))
-      | Float -> (t, v, (Float, default_v))
-      | String -> (t, v, (String, default_v))
-      | List (tl, len) -> (t, v, (List (tl, len), default_v))
+      | Int -> add_symbols v t symbols; (t, v, (Int, default_v))
+      | Bool -> add_symbols v t symbols; (t, v, (Bool, default_v))
+      | Float -> add_symbols v t symbols; (t, v, (Float, default_v))
+      | String -> add_symbols v t symbols; (t, v, (String, default_v))
+      | List (tl, len) -> add_symbols v t symbols; (t, v, (List (tl, len), default_v))
       | Void -> raise (Failure "type infer can't be done")
-      | Func(_, _) -> (t, v, (Func([], Void), SEmptyFunction)) )
+      | Func(arg_typs, ret_typ) -> Hashtbl.add local_funcs v {rtyp=Void; formals=[]; body=[]; fname=v};
+          (t, v, (Func(arg_typs, ret_typ), default_v)))
     else if t = Void then
       let _ = add_symbols v t' symbols in
       (t', v, (t', e'))
@@ -245,33 +252,24 @@ let check (globals, functions) =
       let tt = check_assign t t' err in
       let _ = add_symbols v tt symbols in
       (tt, v, (tt, e'))
-    
-
-  and sglobals =
-    (* check global variables declaration *)
-    let check_globals globals =
-      (* Make sure no globals duplicate *)
-      let global_t = List.map (fun (t, id, _) -> (t, id)) globals in
-      check_dup_binds "global" global_t;
-      let global_symbols = Hashtbl.create 16 in
-      List.map (fun g -> check_bind g global_symbols) globals
-    in
-    check_globals globals
+  
   
   and check_func func =
     let _ = func.fname in
+    let local_funcs = Hashtbl.create 1 in
+      ignore(List.iter (fun (fm, n) -> match fm with
+      | Func(arg_typs, ret_typ) -> let f_typs = List.map (fun t -> (t, "tmp")) arg_typs in
+        Hashtbl.add local_funcs n {fname=n; rtyp=ret_typ; formals=f_typs; body=[]}
+      | _ -> () ) func.formals);
     (* Make sure no formals or locals are void or duplicates *)
     check_dup_binds "formal" func.formals ;
     (* Build local symbol table of variables for this function *)
     let symbols = Hashtbl.create 16 in
     let globals' = List.map (fun (t, id, _) -> (t, id)) globals in
-    let _ =
-      List.iter
-        (fun (t, id) -> Hashtbl.add symbols id t)
-        (globals' @ func.formals)
-    in
+      ignore(List.iter (fun (t, id) -> Hashtbl.add symbols id t)
+        (globals' @ func.formals));
     let check_bool_expr e =
-      let t, e' = check_expr e symbols in
+      let t, e' = check_expr e symbols local_funcs in
       match t with
       | Bool -> (t, e')
       | _ ->
@@ -290,7 +288,7 @@ let check (globals, functions) =
       (* A block is correct if each statement is correct and nothing follows
          any Return statement. Nested blocks are flattened. *)
       | Block sl -> SBlock (check_stmt_list sl)
-      | Expr e -> SExpr (check_expr e symbols)
+      | Expr e -> SExpr (check_expr e symbols local_funcs)
       | If (e, st1, st2) ->
           SIf (check_bool_expr e, check_stmt_list st1, check_stmt_list st2)
       | Ifd (e, st1) -> SIfd (check_bool_expr e, check_stmt_list st1)
@@ -298,7 +296,7 @@ let check (globals, functions) =
       | Break -> SBreak
       | Continue -> SContinue
       | Return e ->
-          let t, e' = check_expr e symbols in
+          let t, e' = check_expr e symbols local_funcs in
           if t = func.rtyp then SReturn (t, e')
           else
             raise
@@ -309,23 +307,23 @@ let check (globals, functions) =
       (* var x: int = 2 *)
       (* var x = 2 *)
       | Bind b ->
-          let sb = check_bind b symbols in
+          let sb = check_bind b symbols local_funcs in
           SBind sb
       | Empty -> SEmpty
       | For (decl, test, tail, st) ->
-          let sdecl = check_bind decl symbols in
+          let sdecl = check_bind decl symbols local_funcs in
           let stest = check_bool_expr test in
-          let stail = check_expr tail symbols in
+          let stail = check_expr tail symbols local_funcs in
           let sst = check_stmt_list st in
           SFor (sdecl, stest, stail, sst)
       | Switch (switch_cond, case_list) ->
-          let sswitch_cond = check_expr switch_cond symbols in
+          let sswitch_cond = check_expr switch_cond symbols local_funcs in
           let cond_typ, _ = sswitch_cond in
           if cond_typ != Int && cond_typ != Bool && cond_typ != String then
             raise (Failure "not supported switch condition type")
           else
             let parse_case (e, sl) =
-              let se = check_expr e symbols in
+              let se = check_expr e symbols local_funcs in
               let ssl = check_stmt_list sl in
               let case_typ, _ = se in
               if case_typ != cond_typ then
@@ -341,4 +339,16 @@ let check (globals, functions) =
     ; sformals= func.formals
     ; sbody= check_stmt_list func.body }
   in
+
+  let sglobals =
+    (* check global variables declaration *)
+    let check_globals globals =
+      (* Make sure no globals duplicate *)
+      let global_t = List.map (fun (t, id, _) -> (t, id)) globals in
+      check_dup_binds "global" global_t;
+      let global_symbols = Hashtbl.create 16 in
+      List.map (fun g -> check_bind g global_symbols (Hashtbl.create 0)) globals
+    in
+    check_globals globals in
+  
   (sglobals, List.map check_func functions)
