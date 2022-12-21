@@ -205,6 +205,11 @@ let translate (_, functions) =
             let s_tp, _ = List.hd l in
             L.build_array_malloc (ltype_of_typ s_tp) (L.const_int i32_t 0)
               "tmp" builder
+      (* | SListAccess(l, idx) -> let _, e = idx in let se = build_expr builder idx in begin
+          match e with
+          | SLiteral i -> L.build_extractvalue (lookup l) i "tmp" builder
+          | _ -> raise (Failure "index is not an int type")
+          end *)
       | _ -> raise (Failure "expr not implemented")
     in
     let add_terminal builder instr =
@@ -311,13 +316,14 @@ let translate (_, functions) =
       | SBreak -> raise (Failure "syntax error: break not appear in a loop")
       | SContinue ->
           raise (Failure "syntax error: continue not appear in a loop")
-      (* | SSwitch (sswitch_cond, scase_list) -> let llswitch = L.build_switch (build_expr builder sswitch_cond) ()
+      | SSwitch (sswitch_cond, scase_list) -> let llswitch = L.build_switch (build_expr builder sswitch_cond)
+          (L.append_block context "switch_else" the_function)
           (List.length scase_list) builder in let end_bb = L.append_block context "switch_end" the_function in
             ignore(L.position_at_end end_bb builder);
           List.iter2 (fun case ->
             let dest_bb = L.append_block context "switch_case" the_function in
               ignore(L.position_at_end dest_bb builder);
-            let llswitch (L.const_int )) *)
+            let llswitch (L.const_int ))
       | _ -> raise (Failure "not implemented yet")
     in
     (* Build the code for each statement in the function *)
