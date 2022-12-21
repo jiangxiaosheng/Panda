@@ -1,7 +1,16 @@
 (library
  (name panda)
  (libraries llvm)
- (flags (:standard -w +a-4)))
+ (flags
+  (:standard -w +a-4))
+ (foreign_stubs
+  (language c)
+  (names builtins)))
+
+(install
+ (files builtins.o)
+ (section bin)
+ (package panda))
 
 (ocamllex scanner)
 

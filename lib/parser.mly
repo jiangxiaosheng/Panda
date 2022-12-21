@@ -1,11 +1,11 @@
 %{
-	open Ast
+  open Ast
 %}
 
 %token SEMI NEWLINE LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE 
 %token PLUS MINUS MULTIPLY DIVIDE MOD ASSIGN PLUSASSIGN MINUASSIGN MULTASSIGN DIVASSIGN MODASSIGN
 %token EQ NEQ LT GT LTEQ GTEQ AND OR NOT 
-%token IF ELSE WHILE INT BOOL
+%token IF ELSE WHILE INT BOOL SWITCH CASE
 /* return, COMMA token */
 %token RETURN COMMA
 %token VAR FOR COLON STRING FLOAT VOID LIST MAP FUNC CONT BREAK
@@ -57,13 +57,25 @@ vdecl:
  | VAR ID COLON typ ASSIGN expr { ($4, $2, $6) }
  | VAR ID ASSIGN expr { (Void, $2, $4) }
 
+
+lambda_formals_opt:
+	  { [] }
+	| lambda_formals_list { $1 }
+
+lambda_formals_list:
+  typ { [$1] }
+  | typ COMMA lambda_formals_list { $1::$3 }
+
 typ:
     INT   { Int   }
   | BOOL  { Bool  }
   | FLOAT { Float }
   | STRING { String }
   | VOID  { Void }
-  | typ LBRACKET RBRACKET { List($1) }
+//   var x: int[3]
+  | typ LBRACKET LITERAL RBRACKET { List($1, $3) }
+  | FUNC LPAREN lambda_formals_opt RPAREN COLON typ { Func($3, $6) }
+  | FUNC LPAREN lambda_formals_opt RPAREN { Func($3, Void) }
 
 /* fdecl */
 fdecl:
@@ -78,7 +90,7 @@ fdecl:
   }
   | FUNC ID LPAREN formals_opt RPAREN LBRACE stmt_list RBRACE
   {
-	{
+  {
       rtyp=Void;
       fname=$2;
       formals=$4;
@@ -152,8 +164,10 @@ expr:
   | LPAREN expr RPAREN { $2                   }
   | ID LPAREN args_opt RPAREN { Call ($1, $3)  }
   | LBRACKET args_opt RBRACKET	{ List($2) }
-//  var x = foo(a)
-  /* call */
+  | ID LBRACKET expr RBRACKET	{ ListAccess($1, $3) }
+  | FUNC LPAREN formals_opt RPAREN COLON typ LBRACE stmt_list RBRACE  { Lambda({rtyp=$6; formals=$3; body=$8}) }
+  | FUNC LPAREN formals_opt RPAREN LBRACE stmt_list RBRACE  { Lambda({rtyp=Void; formals=$3; body=$6}) }
+
 
 /* args_opt*/
 args_opt:

@@ -20,7 +20,6 @@ let letter = ['a'-'z' 'A'-'Z']
 let backslash_escapes = ['\\' '\'' '"' 'n' 't' 'b' 'r']
 
 
-
 rule token = parse
   [' ' '\t' '\r'] { token lexbuf } (* Whitespace *)
 | "/*"     { multi_comment lexbuf }           (* Comments *)
@@ -59,6 +58,8 @@ rule token = parse
 | "||"     { OR }
 | "if"     { IF }
 | "else"   { ELSE }
+| "switch"	{ SWITCH }
+| "case"	{ CASE }
 | "while"  { WHILE }
 | "return" { RETURN }
 | "int"    { INT }

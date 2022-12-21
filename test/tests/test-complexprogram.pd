@@ -1,0 +1,23 @@
+var x = 2
+var a : float = x + 1
+var f : func(int, int) : int
+
+func foo(word : string) {
+	print("greeting " + word)
+}
+
+func main() {
+	var sum = 0
+    var i = 0
+
+    while i < 10 {
+        sum += i
+        i += 1
+		if i == 1 {
+			break
+		} else {
+			i += 2
+			continue
+		}
+    }
+}
